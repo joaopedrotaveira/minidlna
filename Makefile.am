@@ -33,6 +33,7 @@ minidlna_LDADD = \
 	@LIBRT_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
+	@LIBP2P_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
 
 minidlna_LDFLAGS = @STATIC_LDFLAGS@
@@ -47,6 +48,7 @@ testupnpdescgen_LDADD = \
 	@LIBAVCODEC_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBDL_LIBS@ \
+	@LIBP2P_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
 
 

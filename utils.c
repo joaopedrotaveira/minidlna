@@ -323,6 +323,16 @@ is_video(const char * file)
 #ifdef TIVO_SUPPORT
 		ends_with(file, ".TiVo") ||
 #endif
+#ifdef P2P_SUPPORT
+		/*
+		 * Stream descriptors may be:
+		 * SARACEN Manifests V2: application/saracen-manifest+xml
+		 * DASH: application/dash+xml
+		 * HLS: application/x-mpegURL
+		 */
+		ends_with(file, ".xml") ||
+		ends_with(file, ".m3u8") ||
+#endif /* P2P_SUPPORT */
 		ends_with(file, ".mov") || ends_with(file, ".3gp"));
 }
 

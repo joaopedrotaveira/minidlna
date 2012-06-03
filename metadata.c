@@ -83,6 +83,10 @@
 #include "sql.h"
 #include "log.h"
 
+#ifdef P2P_SUPPORT
+#include <manifest2/manifest_v2_t.h>
+#endif
+
 #ifndef FF_PROFILE_H264_BASELINE
 #define FF_PROFILE_H264_BASELINE 66
 #endif
@@ -711,6 +715,89 @@ no_exifdata:
 	return ret;
 }
 
+#ifdef P2P_SUPPORT
+
+int is_stream_descriptor_file(const char * path){
+
+	return 1;
+}
+
+int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * name){
+	manifest_v2_t *manifest = NULL;
+	const clip_v2_t *clip = NULL;
+	const representation_v2_t *representation = NULL;
+	struct tm *modtime;
+	time_t t;
+
+	DPRINTF(E_WARN, L_METADATA, "Parse (%s) file %s\n", name, path);
+
+	if( (manifest = manifest_v2_new_from_file(path)) != NULL){
+		clip = manifest_v2_get_clip_by_index(manifest,0);
+		representation = clip_v2_get_representation_by_index(clip,0);
+
+		if( !m->date && manifest_v2_get_update_time(manifest)>0)
+		{
+			m->date = malloc(20);
+			t = manifest_v2_get_update_time(manifest);
+			modtime = localtime(&t);
+			strftime(m->date, 20, "%FT%T", modtime);
+		}
+
+		if(clip_v2_get_description(clip))
+		{
+			m->title = strdup(clip_v2_get_description(clip));
+		}
+
+		if(representation_v2_get_audio_channels(representation))
+		{
+			m->channels = strdup(representation_v2_get_audio_channels(representation));
+		}
+
+		if(representation_v2_get_bit_rate(representation))
+		{
+			m->bitrate = strdup(representation_v2_get_bit_rate(representation));
+		}
+
+		if(representation_v2_get_audio_sample_rate(representation)>0)
+		{
+			xasprintf(&m->frequency,"%u",representation_v2_get_audio_sample_rate(representation));
+		}
+
+		if(representation_v2_get_samples_per_frame(representation)>0)
+		{
+			xasprintf(&m->bps,"%u",representation_v2_get_samples_per_frame(representation));
+		}
+
+		if(representation_v2_get_width(representation) > 0 &&
+			representation_v2_get_height(representation) > 0)
+		{
+			xasprintf(&m->resolution, "%dx%d",
+					representation_v2_get_width(representation),
+					representation_v2_get_height(representation));
+		}
+
+		//TODO: set duration
+
+		if(representation_v2_get_mime_type(representation))
+		{
+			if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
+				m->mime = strdup("video/mpeg");
+			else
+				m->mime = strdup(representation_v2_get_mime_type(representation));
+		}
+
+		manifest_v2_print(manifest);
+		manifest_v2_free(manifest);
+		manifest = NULL;
+	} else {
+		DPRINTF(E_WARN, L_METADATA, "Could not load %s. It might not be manifest v2 file\n", path);
+		return 0;
+	}
+
+	return 1;
+}
+#endif /* P2P_SUPPORT */
+
 sqlite_int64
 GetVideoMetadata(const char * path, char * name)
 {
@@ -727,7 +814,8 @@ GetVideoMetadata(const char * path, char * name)
 	struct song_metadata video;
 	metadata_t m;
 	uint32_t free_flags = 0xFFFFFFFF;
-	char *path_cpy, *basepath;
+	char *path_cpy = NULL, *basepath;
+	int is_stream_descriptor = 0;
 
 	memset(&m, '\0', sizeof(m));
 	memset(&video, '\0', sizeof(video));
@@ -737,6 +825,20 @@ GetVideoMetadata(const char * path, char * name)
 		return 0;
 	strip_ext(name);
 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
+
+#ifdef P2P_SUPPORT
+	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) && is_stream_descriptor_file(path) )
+	{
+		if( GetStreamDescriptorMetadata(&m, path, name) == 0 )
+		{
+			DPRINTF(E_WARN, L_METADATA, "Opening %s failed!\n", path);
+			return 0;
+		}
+		DPRINTF(E_INFO, L_METADATA, "File %s loaded\n", path);
+		is_stream_descriptor = 1;
+		goto video_no_dlna_p2p;
+	}
+#endif /* P2P_SUPPORT */
 
 	av_register_all();
 	#if LIBAVFORMAT_VERSION_INT >= ((53<<16)+(2<<8)+0)
@@ -1589,6 +1691,11 @@ video_no_dlna:
 		strcpy(m.mime, "video/x-tivo-mpeg");
 	}
 #endif
+
+#ifdef P2P_SUPPORT
+video_no_dlna_p2p:
+#endif /* P2P_SUPPORT */
+
 	if( !m.title )
 		m.title = strdup(name);
 
@@ -1600,7 +1707,7 @@ video_no_dlna:
 	                   "  TITLE, CREATOR, ARTIST, GENRE, COMMENT, DLNA_PN, MIME, ALBUM_ART) "
 	                   "VALUES"
 	                   " (%Q, %lld, %ld, %Q, %Q, %Q, %Q, %Q, %Q, '%q', %Q, %Q, %Q, %Q, %Q, '%q', %lld);",
-	                   path, (long long)file.st_size, file.st_mtime, m.duration,
+	                   path, (is_stream_descriptor)?0:(long long)file.st_size, (is_stream_descriptor)?0:file.st_mtime, m.duration,
 	                   m.date, m.channels, m.bitrate, m.frequency, m.resolution,
 			   m.title, m.creator, m.artist, m.genre, m.comment, m.dlna_pn,
                            m.mime, album_art);
@@ -1614,8 +1721,9 @@ video_no_dlna:
 		ret = sqlite3_last_insert_rowid(db);
 		check_for_captions(path, ret);
 	}
+
 	free_metadata(&m, free_flags);
-	free(path_cpy);
+	if(path_cpy) free(path_cpy);
 
 	return ret;
 }
