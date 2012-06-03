@@ -487,6 +487,38 @@ if test "$with_tivo" = "yes"; then
    	AC_DEFINE([TIVO_SUPPORT],[1],[Define to 1 if you want to enable TiVo support])
 fi
 
+AC_ARG_WITH(p2p,
+	AS_HELP_STRING([--with-p2p],[PPSP P2P Support]),
+	[with_p2p="$withval"],[with_p2p="no"])
+if test "$with_p2p" != "no"; then
+	CPPFLAGS_SAVE="$CPPFLAGS"
+	for dir in /usr/local $INCLUDE_DIR $with_p2p/include; do
+	    if test -n "$dir"; then
+	        CPPFLAGS="$CPPFLAGS -I$dir"
+	    fi
+	    AC_CHECK_HEADERS([peer_client/peer_engine_client.h],,[unset $as_ac_Header; break],)
+	    if test x"$ac_cv_header_peer_client_peer_engine_client_h" != x"yes"; then
+	        unset ac_cv_header_peer_client_peer_engine_client_h
+	        continue
+	    else
+	        break;
+	    fi
+	done
+	test x"$ac_cv_header_peer_client_peer_engine_client_h" != x"yes" && AC_MSG_ERROR([libp2p headers not found or not usable])
+
+	LDFLAGS_SAVE="$LDFLAGS"
+	for dir in /usr/local $SEARCH_DIR $with_p2p; do
+	    if test -n "$dir"; then
+	        LDFLAGS="$LDFLAGS -L$dir/lib"
+	    fi
+	    AC_CHECK_LIB([peer_client], [peer_engine_client_load_descriptor], [LIBP2P_LIBS="-lyaul -lpeer_client"], [unset ac_cv_lib_peer_client_peer_engine_client_load_descriptor; LDFLAGS="$LDFLAGS_SAVE"; continue])
+	    break
+	done
+	test x"$ac_cv_lib_peer_client_peer_engine_client_load_descriptor" = x"yes" || AC_MSG_ERROR([Could not find libpeer_client])
+	AC_SUBST(LIBP2P_LIBS)
+   	AC_DEFINE([P2P_SUPPORT],[1],[Define to 1 if you want to enable PPSP P2P support])
+fi
+
 AC_ARG_WITH(netgear,
 	AS_HELP_STRING([--with-netgear],[NETGEAR ReadyNAS Support]),
 	[with_netgear="$withval"],[with_netgear="no"])
