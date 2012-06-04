@@ -728,6 +728,8 @@ int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * 
 	const representation_v2_t *representation = NULL;
 	struct tm *modtime;
 	time_t t;
+	long duration_millis = 0;
+	int hours, min, sec, ms;
 
 	DPRINTF(E_WARN, L_METADATA, "Parse (%s) file %s\n", name, path);
 
@@ -776,7 +778,15 @@ int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * 
 					representation_v2_get_height(representation));
 		}
 
-		//TODO: set duration
+		duration_millis = clip_v2_get_duration_millis(clip);
+		if(duration_millis>0)
+		{
+			hours = (int)(duration_millis / 3600000);
+			min = (int)(duration_millis / 60000 % 60000);
+			sec = (int)(duration_millis % 60000 / 1000);
+			ms = (int)(duration_millis % 1000);
+			xasprintf(&m->duration, "%d:%02d:%02d.%03d", hours, min, sec, ms);
+		}
 
 		if(representation_v2_get_mime_type(representation))
 		{
