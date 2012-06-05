@@ -511,7 +511,7 @@ if test "$with_p2p" != "no"; then
 	    if test -n "$dir"; then
 	        LDFLAGS="$LDFLAGS -L$dir/lib"
 	    fi
-	    AC_CHECK_LIB([peer_client], [peer_engine_client_load_descriptor], [LIBP2P_LIBS="-lyaul -lpeer_client -lmanifest2"], [unset ac_cv_lib_peer_client_peer_engine_client_load_descriptor; LDFLAGS="$LDFLAGS_SAVE"; continue])
+	    AC_CHECK_LIB([peer_client], [peer_engine_client_load_descriptor], [LIBP2P_LIBS="-lmanifest2_stream_descriptor -lp2p -lhttp_engine -lyaul -lpeer_client -lmanifest2"], [unset ac_cv_lib_peer_client_peer_engine_client_load_descriptor; LDFLAGS="$LDFLAGS_SAVE"; continue])
 	    break
 	done
 	test x"$ac_cv_lib_peer_client_peer_engine_client_load_descriptor" = x"yes" || AC_MSG_ERROR([Could not find libpeer_client])

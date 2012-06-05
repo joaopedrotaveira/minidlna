@@ -79,6 +79,12 @@
 #include "tivo_utils.h"
 #include "tivo_commands.h"
 #endif
+#ifdef P2P_SUPPORT
+#include <http_engine/http_fetch_method.h>
+#include <http_engine/simple_direct_fetch_engine.h>
+#include <peer_client/peer_engine_client.h>
+#include <manifest2/manifest_v2_stream_descriptor.h>
+#endif
 
 #include "sendfile.h"
 
@@ -1793,9 +1799,16 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	                char path[PATH_MAX];
 	                char mime[32];
 	                char dlna[96];
+#ifdef P2P_SUPPORT
+					int is_p2p_descriptor;
+#endif
 	              } last_file = { 0, 0 };
 #if USE_FORK
 	pid_t newpid = 0;
+#endif
+#ifdef P2P_SUPPORT
+//	int is_p2p_descriptor = 0;
+	simple_fetch_engine_context_t *context = NULL;
 #endif
 
 	id = strtoll(object, NULL, 10);
@@ -1831,6 +1844,14 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		last_file.id = id;
 		last_file.client = h->req_client;
 		strncpy(last_file.path, result[3], sizeof(last_file.path)-1);
+#ifdef P2P_SUPPORT
+		if(ends_with(last_file.path,".xml") || ends_with(last_file.path,".m3u8")){
+			DPRINTF(E_DEBUG, L_HTTP, "%s is P2P Descriptor\n", last_file.path);
+			last_file.is_p2p_descriptor = 1;
+		} else {
+			last_file.is_p2p_descriptor = 0;
+		}
+#endif
 		if( result[4] )
 		{
 			strncpy(last_file.mime, result[4], sizeof(last_file.mime)-1);
@@ -1902,6 +1923,82 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	}
 
 	offset = h->req_RangeStart;
+#ifdef P2P_SUPPORT
+	if(last_file.is_p2p_descriptor)
+	{
+		const char *peer_agent_ip = "localhost";
+		const char *peer_agent_port = "8080";
+		char *peer_agent_url = NULL;
+		char *descriptor_data = NULL;
+		stream_descriptor_t *descriptor = NULL;
+		char *peer_client_error = NULL;
+
+		char *bytes = NULL;
+		char *bytes_tmp = NULL;
+		char buffer[1024];
+		size_t file_length = 0;
+		size_t readed = 0;
+		FILE *file = NULL;
+
+		if((file = fopen(last_file.path,"rb")) == NULL){
+			DPRINTF(E_ERROR, L_HTTP, "Error opening file: %s\n",strerror(errno));
+			goto error;
+		}
+
+		while(1){
+			readed = fread(buffer,sizeof(char),1024,file);
+			if((bytes_tmp = (char *)realloc(bytes,file_length+readed+1)) == NULL){
+				DPRINTF(E_ERROR, L_HTTP, "Error allocating memory for file data: %s\n",strerror(errno));
+				if(bytes) free(bytes);
+				if(file) fclose(file);
+				goto error;
+			}
+			bytes = bytes_tmp;
+			memcpy(bytes+file_length,buffer,readed);
+			file_length += readed;
+			*(bytes+file_length) = '\0';
+			if(feof(file)) break;
+		}
+		descriptor_data = bytes;
+
+		manifest_v2_register_stream_descriptor();
+
+		if((descriptor = peer_engine_client_get_descriptor(descriptor_data,"application/saracen-manifest+xml",&peer_client_error)) == NULL){
+			DPRINTF(E_ERROR, L_HTTP, "Error getting descriptor: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
+			if(descriptor_data) free(descriptor_data);
+			if(peer_client_error) free(peer_client_error);
+			if(file) fclose(file);
+			goto error;
+		}
+
+		if(peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
+			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
+			if(descriptor_data) free(descriptor_data);
+			if(peer_client_error) free(peer_client_error);
+			if(file) fclose(file);
+			if(descriptor) stream_descriptor_free(descriptor);
+			goto error;
+		}
+
+		http_register_fetch_method();
+		simple_fetch_engine_register();
+
+		xasprintf(&peer_agent_url,"http://%s:%s/",peer_agent_ip,peer_agent_port);
+		context = simple_fetch_engine_context_new(peer_agent_url);
+		if(peer_agent_url) free(peer_agent_url);
+		simple_fetch_engine_context_set_base_url(context,"/streams/vod/ts/SARACENTutorial1_hls_2sec_tc/SARACENTutorial1_tc-");
+		simple_fetch_engine_context_set_ext(context,"ts");
+		if( h->reqflags & FLAG_RANGE )
+			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 1");
+		h->reqflags = h->reqflags & ~FLAG_RANGE;
+		if( h->reqflags & FLAG_RANGE )
+			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 2");
+
+	}
+	else
+	{
+#endif
+
 	sendfh = open(last_file.path, O_RDONLY);
 	if( sendfh < 0 ) {
 		DPRINTF(E_ERROR, L_HTTP, "Error opening %s\n", last_file.path);
@@ -1911,6 +2008,9 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	size = lseek(sendfh, 0, SEEK_END);
 	lseek(sendfh, 0, SEEK_SET);
 
+#ifdef P2P_SUPPORT
+	}
+#endif
 	str.data = header;
 	str.size = sizeof(header);
 	str.off = 0;
@@ -1983,7 +2083,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	}
 
 	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	strcatf(&str, "Accept-Ranges: bytes\r\n"
+	strcatf(&str,
+			//"Accept-Ranges: bytes\r\n"
 	              "Connection: close\r\n"
 	              "Date: %s\r\n"
 	              "EXT:\r\n"
@@ -1995,6 +2096,32 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
+#ifdef P2P_SUPPORT
+#define BLABYTES 10240
+		ssize_t to_read = BLABYTES;
+		ssize_t bytes_read = BLABYTES;
+		unsigned char buffer[BLABYTES] = {0};
+		if(last_file.is_p2p_descriptor)
+		{
+			while((bytes_read = simple_fetch_engine_read(context,buffer,to_read))>=0){
+				if(bytes_read > 0)
+				{
+					ret = send(h->socket, buffer, bytes_read, 0);
+					if( ret == -1 ) {
+						DPRINTF(E_DEBUG, L_HTTP, "write error :: error no. %d [%s]\n", errno, strerror(errno));
+						if( errno != EAGAIN )
+							break;
+					}
+//					else
+//					{
+//						DPRINTF(E_DEBUG, L_HTTP, "send: %d %d\n",ret,bytes_read);
+//					}
+				}
+			}
+			DPRINTF(E_DEBUG, L_HTTP, "off while send: %d %d\n",ret,bytes_read);
+		}
+		else
+#endif
  		if( h->req_command != EHead )
 			send_file(h, sendfh, offset, h->req_RangeEnd);
 	}
