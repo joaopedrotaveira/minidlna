@@ -80,6 +80,7 @@
 #include "tivo_commands.h"
 #endif
 #ifdef P2P_SUPPORT
+#include <yaul/mime_type_utils.h>
 #include <http_engine/http_fetch_method.h>
 #include <http_engine/simple_direct_fetch_engine.h>
 #include <peer_client/peer_engine_client.h>
@@ -1932,6 +1933,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		char *descriptor_data = NULL;
 		stream_descriptor_t *descriptor = NULL;
 		char *peer_client_error = NULL;
+		clip_representation_t *clip_representation = NULL;
+		char *resources_base_url = NULL;
 
 		char *bytes = NULL;
 		char *bytes_tmp = NULL;
@@ -1980,14 +1983,27 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			goto error;
 		}
 
+		if(descriptor_data) free(descriptor_data);
+		if(peer_client_error) free(peer_client_error);
+		if(file) fclose(file);
+
 		http_register_fetch_method();
 		simple_fetch_engine_register();
+
+		clip_representation = stream_descriptor_get_clip_representation_by_index(descriptor,0);
+		if(clip_representation == NULL){
+			DPRINTF(E_ERROR, L_HTTP, "P2P Stream descriptor has no clips\n");
+			if(descriptor) stream_descriptor_free(descriptor);
+			goto error;
+		}
 
 		xasprintf(&peer_agent_url,"http://%s:%s/",peer_agent_ip,peer_agent_port);
 		context = simple_fetch_engine_context_new(peer_agent_url);
 		if(peer_agent_url) free(peer_agent_url);
-		simple_fetch_engine_context_set_base_url(context,"/streams/vod/ts/SARACENTutorial1_hls_2sec_tc/SARACENTutorial1_tc-");
-		simple_fetch_engine_context_set_ext(context,"ts");
+		resources_base_url = clip_representation_get_resources_base(clip_representation);
+		simple_fetch_engine_context_set_base_url(context,resources_base_url);
+		if(resources_base_url) free(resources_base_url);
+		simple_fetch_engine_context_set_ext(context,mime_type_get_extension(clip_representation_get_mime_type(clip_representation)));
 		if( h->reqflags & FLAG_RANGE )
 			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 1");
 		h->reqflags = h->reqflags & ~FLAG_RANGE;
