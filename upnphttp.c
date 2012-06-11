@@ -82,7 +82,7 @@
 #ifdef P2P_SUPPORT
 #include <yaul/mime_type_utils.h>
 #include <http_engine/http_fetch_method.h>
-#include <http_engine/simple_direct_fetch_engine.h>
+#include <http_engine/simple_fetch_engine.h>
 #include <peer_client/peer_engine_client.h>
 #include <manifest2/manifest_v2_stream_descriptor.h>
 #endif
