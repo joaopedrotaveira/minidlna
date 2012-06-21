@@ -83,6 +83,9 @@
 #include <yaul/mime_type_utils.h>
 #include <http_engine/http_fetch_method.h>
 #include <http_engine/simple_fetch_engine.h>
+
+#include <peer_client/stream_descriptor_fetch_engine.h>
+
 #include <peer_client/peer_engine_client.h>
 #include <manifest2/manifest_v2_stream_descriptor.h>
 #endif
@@ -1808,8 +1811,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	pid_t newpid = 0;
 #endif
 #ifdef P2P_SUPPORT
-//	int is_p2p_descriptor = 0;
-	simple_fetch_engine_context_t *context = NULL;
+	//simple_fetch_engine_context_t *sfe_context = NULL;
+	stream_descriptor_fetch_engine_context_t *sdfe_context = NULL;
 #endif
 
 	id = strtoll(object, NULL, 10);
@@ -1966,7 +1969,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 
 		manifest_v2_register_stream_descriptor();
 
-		if((descriptor = peer_engine_client_get_descriptor(descriptor_data,"application/saracen-manifest+xml",&peer_client_error)) == NULL){
+		if((descriptor = peer_engine_client_get_descriptor("",last_file.path,descriptor_data,"application/saracen-manifest+xml",&peer_client_error)) == NULL){
 			DPRINTF(E_ERROR, L_HTTP, "Error getting descriptor: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
 			if(descriptor_data) free(descriptor_data);
 			if(peer_client_error) free(peer_client_error);
@@ -1974,7 +1977,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			goto error;
 		}
 
-		if(peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
+		if(stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
 			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
 			if(descriptor_data) free(descriptor_data);
 			if(peer_client_error) free(peer_client_error);
@@ -1989,6 +1992,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 
 		http_register_fetch_method();
 		simple_fetch_engine_register();
+		stream_descriptor_fetch_engine_register();
 
 		clip_representation = stream_descriptor_get_clip_representation_by_index(descriptor,0);
 		if(clip_representation == NULL){
@@ -1997,18 +2001,33 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			goto error;
 		}
 
-		xasprintf(&peer_agent_url,"http://%s:%s/",peer_agent_ip,peer_agent_port);
-		context = simple_fetch_engine_context_new(peer_agent_url);
-		if(peer_agent_url) free(peer_agent_url);
-		resources_base_url = clip_representation_get_resources_base(clip_representation);
-		simple_fetch_engine_context_set_base_url(context,resources_base_url);
-		if(resources_base_url) free(resources_base_url);
-		simple_fetch_engine_context_set_ext(context,mime_type_get_extension(clip_representation_get_mime_type(clip_representation)));
-		if( h->reqflags & FLAG_RANGE )
-			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 1");
+//		xasprintf(&peer_agent_url,"http://%s:%s/",peer_agent_ip,peer_agent_port);
+//		sfe_context = simple_fetch_engine_context_new(peer_agent_url);
+//		if(peer_agent_url) free(peer_agent_url);
+//		resources_base_url = clip_representation_get_resources_base(clip_representation);
+//		simple_fetch_engine_context_set_base_url(sfe_context,resources_base_url);
+//		if(resources_base_url) free(resources_base_url);
+//		simple_fetch_engine_context_set_ext(sfe_context,mime_type_get_extension(clip_representation_get_mime_type(clip_representation)));
+
+		sdfe_context = stream_descriptor_fetch_engine_context_new(descriptor);
+
+		DPRINTF(E_DEBUG, L_HTTP, "LastFile.path: %s\n",last_file.path);
+
+		if(stream_descriptor_get_swarm_id(descriptor)){
+			stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,peer_agent_ip);
+			stream_descriptor_fetch_engine_context_set_peer_port(sdfe_context,peer_agent_port);
+		} else {
+			stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"monster.taveiranet.com");
+			if(strstr(last_file.path,"mozart"))
+				stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"saracen2.inov.pt");
+			stream_descriptor_fetch_engine_context_set_peer_port(sdfe_context,"80");
+		}
+
+//		if( h->reqflags & FLAG_RANGE )
+//			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 1");
 		h->reqflags = h->reqflags & ~FLAG_RANGE;
-		if( h->reqflags & FLAG_RANGE )
-			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 2");
+//		if( h->reqflags & FLAG_RANGE )
+//			DPRINTF(E_DEBUG, L_HTTP, "FLAG RANGE 2");
 
 	}
 	else
@@ -2119,7 +2138,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		unsigned char buffer[BLABYTES] = {0};
 		if(last_file.is_p2p_descriptor)
 		{
-			while((bytes_read = simple_fetch_engine_read(context,buffer,to_read))>=0){
+			while((bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,to_read))>=0){
+			//while((bytes_read = simple_fetch_engine_read(sfe_context,buffer,to_read))>=0){
 				if(bytes_read > 0)
 				{
 					ret = send(h->socket, buffer, bytes_read, 0);

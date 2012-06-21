@@ -791,7 +791,8 @@ int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * 
 		if(representation_v2_get_mime_type(representation))
 		{
 			if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
-				m->mime = strdup("video/mpeg");
+				//m->mime = strdup("video/mpeg");
+				m->mime = strdup("video/vnd.dlna.mpeg-tts");
 			else
 				m->mime = strdup(representation_v2_get_mime_type(representation));
 		}
