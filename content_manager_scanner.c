@@ -9,6 +9,7 @@
 
 #ifdef P2P_SUPPORT
 
+#include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -30,7 +31,7 @@
 #define SARACEN_CONTENT_MANAGER "http://localhost:8092/manifest/list"
 //#define SARACEN_CONTENT_MANAGER "http://saracen.inov.pt:8092/manifest/list"
 
-static time_t next_pl_fill = 0;
+//static time_t next_pl_fill = 0;
 
 int is_stream_descriptor_file(const char * path){
 	int ret = 0;
@@ -85,9 +86,9 @@ int content_manager_download_manifests(const char *content_manager_url){
 
 void *
 start_content_manager_scanner(){
-	int length = 0;
-	struct pollfd pollfds[1];
-	int timeout = 10000;
+//	int length = 0;
+//	struct pollfd pollfds[1];
+//	int timeout = 10000;
 
 	http_register_fetch_method();
 	simple_fetch_engine_register();
