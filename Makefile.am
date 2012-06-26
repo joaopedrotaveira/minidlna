@@ -10,7 +10,8 @@ minidlna_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			sql.c utils.c metadata.c scanner.c inotify.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			tagutils/textutils.c tagutils/misc.c tagutils/tagutils.c \
-			playlist.c image_utils.c albumart.c log.c
+			playlist.c image_utils.c albumart.c log.c \
+			content_manager_scanner.c
 
 
 #if NEED_VORBIS

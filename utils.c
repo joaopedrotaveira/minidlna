@@ -31,6 +31,10 @@
 #include "upnpglobalvars.h"
 #include "log.h"
 
+#ifdef P2P_SUPPORT
+#include "content_manager_scanner.h"
+#endif
+
 inline int
 strcatf(struct string_s *str, const char *fmt, ...)
 {

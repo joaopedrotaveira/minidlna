@@ -40,6 +40,7 @@ char *facility_name[] = {
 	"http",
 	"ssdp",
 	"tivo",
+	"p2p",
 	0
 };
 

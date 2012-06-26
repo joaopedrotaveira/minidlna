@@ -717,13 +717,7 @@ no_exifdata:
 
 #ifdef P2P_SUPPORT
 
-int is_stream_descriptor_file(const char * path){
-
-	return 1;
-}
-
-int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * name){
-	manifest_v2_t *manifest = NULL;
+int GetManifestMetadata(metadata_t * m, const char * path, const char * name, manifest_v2_t *manifest){
 	const clip_v2_t *clip = NULL;
 	const representation_v2_t *representation = NULL;
 	struct tm *modtime;
@@ -731,75 +725,87 @@ int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * 
 	long duration_millis = 0;
 	int hours, min, sec, ms;
 
+	if(manifest == NULL) return 0;
+
+	clip = manifest_v2_get_clip_by_index(manifest,0);
+	representation = clip_v2_get_representation_by_index(clip,0);
+
+	if( !m->date && manifest_v2_get_update_time(manifest)>0)
+	{
+		m->date = malloc(20);
+		t = manifest_v2_get_update_time(manifest);
+		modtime = localtime(&t);
+		strftime(m->date, 20, "%FT%T", modtime);
+	}
+
+	if(clip_v2_get_description(clip))
+	{
+		m->title = strdup(clip_v2_get_description(clip));
+	}
+
+	if(representation_v2_get_audio_channels(representation))
+	{
+		m->channels = strdup(representation_v2_get_audio_channels(representation));
+	}
+
+	if(representation_v2_get_bit_rate(representation))
+	{
+		m->bitrate = strdup(representation_v2_get_bit_rate(representation));
+	}
+
+	if(representation_v2_get_audio_sample_rate(representation)>0)
+	{
+		xasprintf(&m->frequency,"%u",representation_v2_get_audio_sample_rate(representation));
+	}
+
+	if(representation_v2_get_samples_per_frame(representation)>0)
+	{
+		xasprintf(&m->bps,"%u",representation_v2_get_samples_per_frame(representation));
+	}
+
+	if(representation_v2_get_width(representation) > 0 &&
+		representation_v2_get_height(representation) > 0)
+	{
+		xasprintf(&m->resolution, "%dx%d",
+				representation_v2_get_width(representation),
+				representation_v2_get_height(representation));
+	}
+
+	duration_millis = clip_v2_get_duration_millis(clip);
+	if(duration_millis>0)
+	{
+		hours = (int)(duration_millis / 3600000);
+		min = (int)(duration_millis / 60000 % 60000);
+		sec = (int)(duration_millis % 60000 / 1000);
+		ms = (int)(duration_millis % 1000);
+		xasprintf(&m->duration, "%d:%02d:%02d.%03d", hours, min, sec, ms);
+	}
+
+	if(representation_v2_get_mime_type(representation))
+	{
+		if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
+			//m->mime = strdup("video/mpeg");
+			m->mime = strdup("video/vnd.dlna.mpeg-tts");
+		else
+			m->mime = strdup(representation_v2_get_mime_type(representation));
+	}
+
+	manifest_v2_print(manifest);
+	return 1;
+}
+
+int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * name){
+	manifest_v2_t *manifest = NULL;
+
 	DPRINTF(E_WARN, L_METADATA, "Parse (%s) file %s\n", name, path);
 
 	if( (manifest = manifest_v2_new_from_file(path)) != NULL){
-		clip = manifest_v2_get_clip_by_index(manifest,0);
-		representation = clip_v2_get_representation_by_index(clip,0);
-
-		if( !m->date && manifest_v2_get_update_time(manifest)>0)
-		{
-			m->date = malloc(20);
-			t = manifest_v2_get_update_time(manifest);
-			modtime = localtime(&t);
-			strftime(m->date, 20, "%FT%T", modtime);
+		if(GetManifestMetadata(m,path,name,manifest)<0){
+			DPRINTF(E_WARN, L_METADATA, "Could not load %s\n", path);
+			return 0;
+		}else{
+			return 1;
 		}
-
-		if(clip_v2_get_description(clip))
-		{
-			m->title = strdup(clip_v2_get_description(clip));
-		}
-
-		if(representation_v2_get_audio_channels(representation))
-		{
-			m->channels = strdup(representation_v2_get_audio_channels(representation));
-		}
-
-		if(representation_v2_get_bit_rate(representation))
-		{
-			m->bitrate = strdup(representation_v2_get_bit_rate(representation));
-		}
-
-		if(representation_v2_get_audio_sample_rate(representation)>0)
-		{
-			xasprintf(&m->frequency,"%u",representation_v2_get_audio_sample_rate(representation));
-		}
-
-		if(representation_v2_get_samples_per_frame(representation)>0)
-		{
-			xasprintf(&m->bps,"%u",representation_v2_get_samples_per_frame(representation));
-		}
-
-		if(representation_v2_get_width(representation) > 0 &&
-			representation_v2_get_height(representation) > 0)
-		{
-			xasprintf(&m->resolution, "%dx%d",
-					representation_v2_get_width(representation),
-					representation_v2_get_height(representation));
-		}
-
-		duration_millis = clip_v2_get_duration_millis(clip);
-		if(duration_millis>0)
-		{
-			hours = (int)(duration_millis / 3600000);
-			min = (int)(duration_millis / 60000 % 60000);
-			sec = (int)(duration_millis % 60000 / 1000);
-			ms = (int)(duration_millis % 1000);
-			xasprintf(&m->duration, "%d:%02d:%02d.%03d", hours, min, sec, ms);
-		}
-
-		if(representation_v2_get_mime_type(representation))
-		{
-			if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
-				//m->mime = strdup("video/mpeg");
-				m->mime = strdup("video/vnd.dlna.mpeg-tts");
-			else
-				m->mime = strdup(representation_v2_get_mime_type(representation));
-		}
-
-		manifest_v2_print(manifest);
-		manifest_v2_free(manifest);
-		manifest = NULL;
 	} else {
 		DPRINTF(E_WARN, L_METADATA, "Could not load %s. It might not be manifest v2 file\n", path);
 		return 0;
@@ -838,7 +844,8 @@ GetVideoMetadata(const char * path, char * name)
 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
 
 #ifdef P2P_SUPPORT
-	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) && is_stream_descriptor_file(path) )
+//	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) && is_stream_descriptor_file(path) )
+	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) || is_stream_descriptor_file(path) )
 	{
 		if( GetStreamDescriptorMetadata(&m, path, name) == 0 )
 		{

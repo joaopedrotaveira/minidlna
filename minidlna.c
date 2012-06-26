@@ -89,6 +89,9 @@
 #include "scanner.h"
 #include "inotify.h"
 #include "log.h"
+#ifdef P2P_SUPPORT
+#include "content_manager_scanner.h"
+#endif
 #ifdef TIVO_SUPPORT
 #include "tivo_beacon.h"
 #include "tivo_utils.h"
@@ -861,6 +864,9 @@ main(int argc, char * * argv)
 	int last_changecnt = 0;
 	pid_t scanner_pid = 0;
 	pthread_t inotify_thread = 0;
+#ifdef P2P_SUPPORT
+	pthread_t content_manager_thread = 0;
+#endif /* P2P_SUPPORT */
 	struct media_dir_s *media_path, *last_path;
 	struct album_art_name_s *art_names, *last_name;
 #ifdef TIVO_SUPPORT
@@ -972,6 +978,16 @@ main(int argc, char * * argv)
 		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_inotify. EXITING\n");
 	}
 #endif
+#ifdef P2P_SUPPORT
+	if(
+//			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
+//		    GETFLAG(P2P_MASK) &&
+		    pthread_create(&content_manager_thread, NULL, start_content_manager_scanner, NULL) )
+	{
+		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_content_manager_scanner. EXITING\n");
+	}
+#endif /* P2P_SUPPORT */
+
 	sudp = OpenAndConfSSDPReceiveSocket(n_lan_addr, lan_addr);
 	if(sudp < 0)
 	{
