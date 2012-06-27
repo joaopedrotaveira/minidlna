@@ -844,8 +844,7 @@ GetVideoMetadata(const char * path, char * name)
 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
 
 #ifdef P2P_SUPPORT
-//	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) && is_stream_descriptor_file(path) )
-	if( (ends_with(path, ".xml") || ends_with(path, ".m3u8")) || is_stream_descriptor_file(path) )
+	if( ends_with(path, ".xml") || ends_with(path, ".m3u8") )
 	{
 		if( GetStreamDescriptorMetadata(&m, path, name) == 0 )
 		{

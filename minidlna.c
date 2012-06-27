@@ -353,7 +353,7 @@ init(int argc, char * * argv)
 	char * path;
 	char buf[PATH_MAX];
 	char ip_addr[INET_ADDRSTRLEN + 3] = {'\0'};
-	char log_str[72] = "general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn";
+	char log_str[100] = "general,artwork,database,inotify,scanner,metadata,http,ssdp,p2p,tivo=warn";
 	char *log_level = NULL;
 
 	/* first check if "-f" option is used */
@@ -790,7 +790,7 @@ init(int argc, char * * argv)
 
 	if( verbose_flag )
 	{
-		strcpy(log_str+65, "debug");
+		strcpy(log_str+69, "debug");
 		log_level = log_str;
 	}
 	else if( !log_level )
