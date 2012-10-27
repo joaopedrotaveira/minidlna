@@ -1671,27 +1671,27 @@ GetVideoMetadata(const char * path, char * name)
 //	}
 	#ifndef NETGEAR
 	#if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(31<<8)+0)
-	else if( strcmp(ctx->iformat->name, "mov,mp4,m4a,3gp,3g2,mj2") == 0 )
-	{
-		if( ctx->metadata )
-		{
-			AVMetadataTag *tag = NULL;
-
-			//DEBUG DPRINTF(E_DEBUG, L_METADATA, "Metadata:\n");
-			while( (tag = av_metadata_get(ctx->metadata, "", tag, AV_METADATA_IGNORE_SUFFIX)) )
-			{
-				//DEBUG DPRINTF(E_DEBUG, L_METADATA, "  %-16s: %s\n", tag->key, tag->value);
-				if( strcmp(tag->key, "title") == 0 )
-					m.title = escape_tag(trim(tag->value), 1);
-				else if( strcmp(tag->key, "genre") == 0 )
-					m.genre = escape_tag(trim(tag->value), 1);
-				else if( strcmp(tag->key, "artist") == 0 )
-					m.artist = escape_tag(trim(tag->value), 1);
-				else if( strcmp(tag->key, "comment") == 0 )
-					m.comment = escape_tag(trim(tag->value), 1);
-			}
-		}
-	}
+//	else if( strcmp(ctx->iformat->name, "mov,mp4,m4a,3gp,3g2,mj2") == 0 )
+//	{
+//		if( ctx->metadata )
+//		{
+//			AVMetadataTag *tag = NULL;
+//
+//			//DEBUG DPRINTF(E_DEBUG, L_METADATA, "Metadata:\n");
+//			while( (tag = av_metadata_get(ctx->metadata, "", tag, AV_METADATA_IGNORE_SUFFIX)) )
+//			{
+//				//DEBUG DPRINTF(E_DEBUG, L_METADATA, "  %-16s: %s\n", tag->key, tag->value);
+//				if( strcmp(tag->key, "title") == 0 )
+//					m.title = escape_tag(trim(tag->value), 1);
+//				else if( strcmp(tag->key, "genre") == 0 )
+//					m.genre = escape_tag(trim(tag->value), 1);
+//				else if( strcmp(tag->key, "artist") == 0 )
+//					m.artist = escape_tag(trim(tag->value), 1);
+//				else if( strcmp(tag->key, "comment") == 0 )
+//					m.comment = escape_tag(trim(tag->value), 1);
+//			}
+//		}
+//	}
 	#endif
 	#endif
 //video_no_dlna:
