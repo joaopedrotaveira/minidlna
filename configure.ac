@@ -100,7 +100,8 @@ AC_CHECK_LIB([dl], [dlopen], [LIBDL_LIBS="-ldl"],)
 AC_SUBST(LIBDL_LIBS)
 
 CPPFLAGS_SAVE="$CPPFLAGS"
-for dir in "" /usr/local $INCLUDE_DIR; do
+#for dir in "" /usr/local $INCLUDE_DIR; do
+for dir in ""; do
     if test -n "$dir"; then
         CPPFLAGS="$CPPFLAGS_SAVE -I$dir"
     fi
@@ -117,11 +118,13 @@ for dir in "" /usr/local $INCLUDE_DIR; do
     break
 done
 if test -z "$HAVE_LIBAVUTIL"; then
-    AC_MSG_ERROR([libavutil headers not found or not usable])
+#    AC_MSG_ERROR([libavutil headers not found or not usable])
+    AC_MSG_WARN([libavutil headers not found or not usable])
 fi
 
 CPPFLAGS_SAVE="$CPPFLAGS"
-for dir in "" /usr/local $INCLUDE_DIR; do
+#for dir in "" /usr/local $INCLUDE_DIR; do
+for dir in ""; do
     if test -n "$dir"; then
         CPPFLAGS="$CPPFLAGS_SAVE -I$dir"
     fi
@@ -138,11 +141,13 @@ for dir in "" /usr/local $INCLUDE_DIR; do
     break
 done
 if test -z "$HAVE_LIBAVCODEC"; then
-    AC_MSG_ERROR([libavcodec headers not found or not usable])
+#    AC_MSG_ERROR([libavcodec headers not found or not usable])
+	AC_MSG_WARN([libavcodec headers not found or not usable])
 fi
 
 CPPFLAGS_SAVE="$CPPFLAGS"
-for dir in "" /usr/local $INCLUDE_DIR; do
+#for dir in "" /usr/local $INCLUDE_DIR; do
+for dir in ""; do
     if test -n "$dir"; then
         CPPFLAGS="$CPPFLAGS_SAVE -I$dir"
     fi
@@ -159,11 +164,13 @@ for dir in "" /usr/local $INCLUDE_DIR; do
     break
 done
 if test -z "$HAVE_LIBAVFORMAT"; then
-    AC_MSG_ERROR([libavformat headers not found or not usable])
+#    AC_MSG_ERROR([libavformat headers not found or not usable])
+    AC_MSG_WARN([libavformat headers not found or not usable])
 fi
 
 CPPFLAGS_SAVE="$CPPFLAGS"
-for dir in "" /usr/local $INCLUDE_DIR; do
+#for dir in "" /usr/local $INCLUDE_DIR; do
+for dir in ""; do
     if test -n "$dir"; then
         CPPFLAGS="$CPPFLAGS -I$dir"
     fi
@@ -193,13 +200,36 @@ for dir in "" /usr/local $INCLUDE_DIR; do
         break;
     fi
 done
-test x"$ac_cv_header_jpeglib_h" != x"yes" && AC_MSG_ERROR([libjpeg headers not found or not usable])
+
+for dir in "" /usr/local $INCLUDE_DIR; do
+    if test -n "$dir"; then
+        CPPFLAGS="$CPPFLAGS -I$dir"
+    fi
+    AC_CHECK_HEADERS([sqlite3.h],,[unset $as_ac_Header; break],)
+    if test x"$ac_cv_header_sqlite3_h" != x"yes"; then
+        CPPFLAGS="$CPPFLAGS_SAVE"
+        continue
+    else
+        break;
+    fi
+done
+
+#test x"$ac_cv_header_jpeglib_h" != x"yes" && AC_MSG_ERROR([libjpeg headers not found or not usable])
+test x"$ac_cv_header_jpeglib_h" != x"yes" && AC_MSG_WARN([libjpeg headers not found or not usable])
+
 test x"$ac_cv_header_sqlite3_h" != x"yes" && AC_MSG_ERROR([libsqlite3 headers not found or not usable])
-test x"$ac_cv_header_libexif_exif_loader_h" != x"yes" && AC_MSG_ERROR([libexif headers not found or not usable])
-test x"$ac_cv_header_id3tag_h" != x"yes" && AC_MSG_ERROR([libid3tag headers not found or not usable])
-test x"$ac_cv_header_ogg_ogg_h" != x"yes" && AC_MSG_ERROR([libogg headers not found or not usable])
-test x"$ac_cv_header_vorbis_codec_h" != x"yes" && AC_MSG_ERROR([libvorbis headers not found or not usable])
-test x"$ac_cv_header_FLAC_metadata_h" != x"yes" && AC_MSG_ERROR([libFLAC headers not found or not usable])
+
+#test x"$ac_cv_header_libexif_exif_loader_h" != x"yes" && AC_MSG_ERROR([libexif headers not found or not usable])
+#test x"$ac_cv_header_ogg_ogg_h" != x"yes" && AC_MSG_ERROR([libogg headers not found or not usable])
+#test x"$ac_cv_header_id3tag_h" != x"yes" && AC_MSG_ERROR([libid3tag headers not found or not usable])
+#test x"$ac_cv_header_vorbis_codec_h" != x"yes" && AC_MSG_ERROR([libvorbis headers not found or not usable])
+#test x"$ac_cv_header_FLAC_metadata_h" != x"yes" && AC_MSG_ERROR([libFLAC headers not found or not usable])
+
+test x"$ac_cv_header_libexif_exif_loader_h" != x"yes" && AC_MSG_WARN([libexif headers not found or not usable])
+test x"$ac_cv_header_id3tag_h" != x"yes" && AC_MSG_WARN([libid3tag headers not found or not usable])
+test x"$ac_cv_header_ogg_ogg_h" != x"yes" && AC_MSG_WARN([libogg headers not found or not usable])
+test x"$ac_cv_header_vorbis_codec_h" != x"yes" && AC_MSG_WARN([libvorbis headers not found or not usable])
+test x"$ac_cv_header_FLAC_metadata_h" != x"yes" && AC_MSG_WARN([libFLAC headers not found or not usable])
 
 CFLAGS_SAVE="$CFLAGS"
 CFLAGS="$CFLAGS -Wall -Werror"

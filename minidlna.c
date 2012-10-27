@@ -592,8 +592,8 @@ init(int argc, char * * argv)
 				minissdpdsocketpath = ary_options[i].value;
 				break;
 			default:
-				DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n",
-				        optionsfile);
+				DPRINTF(E_ERROR, L_GENERAL, "Unknown option in file %s\n", optionsfile);
+				break;
 			}
 		}
 	}
@@ -750,6 +750,7 @@ init(int argc, char * * argv)
 			break;
 		default:
 			DPRINTF(E_ERROR, L_GENERAL, "Unknown option: %s\n", argv[i]);
+			break;
 		}
 	}
 	/* If no IP was specified, try to detect one */
@@ -980,8 +981,8 @@ main(int argc, char * * argv)
 #endif
 #ifdef P2P_SUPPORT
 	if(
-//			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
-//		    GETFLAG(P2P_MASK) &&
+////			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
+////		    GETFLAG(P2P_MASK) &&
 		    pthread_create(&content_manager_thread, NULL, start_content_manager_scanner, NULL) )
 	{
 		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_content_manager_scanner. EXITING\n");

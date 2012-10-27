@@ -27,7 +27,7 @@
 #include <yaul/simple_list_t.h>
 #include <http_engine/http_fetch_method.h>
 #include <http_engine/simple_fetch_engine.h>
-
+#include <manifest2/manifest_v2_t.h>
 #include <peer_client/content_manager_client.h>
 
 //#define SARACEN_CONTENT_MANAGER "http://localhost:8092/manifest/list"
