@@ -980,13 +980,13 @@ main(int argc, char * * argv)
 	}
 #endif
 #ifdef P2P_SUPPORT
-	if(
-////			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
-////		    GETFLAG(P2P_MASK) &&
-		    pthread_create(&content_manager_thread, NULL, start_content_manager_scanner, NULL) )
-	{
-		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_content_manager_scanner. EXITING\n");
-	}
+//	if(
+//////			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
+//////		    GETFLAG(P2P_MASK) &&
+//		    pthread_create(&content_manager_thread, NULL, start_content_manager_scanner, NULL) )
+//	{
+//		DPRINTF(E_FATAL, L_GENERAL, "ERROR: pthread_create() failed for start_content_manager_scanner. EXITING\n");
+//	}
 #endif /* P2P_SUPPORT */
 
 	sudp = OpenAndConfSSDPReceiveSocket(n_lan_addr, lan_addr);
