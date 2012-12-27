@@ -1849,7 +1849,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		last_file.client = h->req_client;
 		strncpy(last_file.path, result[3], sizeof(last_file.path)-1);
 #ifdef P2P_SUPPORT
-		if(ends_with(last_file.path,".xml") || ends_with(last_file.path,".m3u8")){
+		if(ends_with(last_file.path,".xml") || ends_with(last_file.path,".m3u8") || ends_with(last_file.path,".mpd")){
 			DPRINTF(E_DEBUG, L_HTTP, "%s is P2P Descriptor\n", last_file.path);
 			last_file.is_p2p_descriptor = 1;
 		} else {
@@ -1969,7 +1969,13 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 
 		manifest_v2_register_stream_descriptor();
 
-		if((descriptor = peer_engine_client_get_descriptor("",last_file.path,descriptor_data,"application/saracen-manifest+xml",&peer_client_error)) == NULL){
+		if( ends_with(last_file.path,".xml") && (descriptor = peer_engine_client_get_descriptor("",last_file.path,descriptor_data,"application/saracen-manifest+xml",&peer_client_error)) == NULL){
+			DPRINTF(E_ERROR, L_HTTP, "Error getting descriptor: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
+			if(descriptor_data) free(descriptor_data);
+			if(peer_client_error) free(peer_client_error);
+			if(file) fclose(file);
+			goto error;
+		} else if( ends_with(last_file.path,".mpd") && (descriptor = peer_engine_client_get_descriptor("",last_file.path,descriptor_data,"application/dash+xml",&peer_client_error)) == NULL){
 			DPRINTF(E_ERROR, L_HTTP, "Error getting descriptor: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
 			if(descriptor_data) free(descriptor_data);
 			if(peer_client_error) free(peer_client_error);
@@ -1977,7 +1983,14 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			goto error;
 		}
 
-		if(stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
+		if(ends_with(last_file.path,".xml") && stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
+			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
+			if(descriptor_data) free(descriptor_data);
+			if(peer_client_error) free(peer_client_error);
+			if(file) fclose(file);
+			if(descriptor) stream_descriptor_free(descriptor);
+			goto error;
+		} else if(ends_with(last_file.path,".mpd") && stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/dash+xml",&peer_client_error)<0){
 			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
 			if(descriptor_data) free(descriptor_data);
 			if(peer_client_error) free(peer_client_error);

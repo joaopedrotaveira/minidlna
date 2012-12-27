@@ -91,6 +91,7 @@
 #include "log.h"
 #ifdef P2P_SUPPORT
 #include "content_manager_scanner.h"
+#include <dash_stream_descriptor/dash_stream_descriptor.h>
 #endif
 #ifdef TIVO_SUPPORT
 #include "tivo_beacon.h"
@@ -889,6 +890,10 @@ main(int argc, char * * argv)
 	if (init(argc, argv) != 0)
 		return 1;
 
+#ifdef P2P_SUPPORT
+	dash_register_stream_descriptor();
+#endif /* P2P_SUPPORT */
+
 #ifdef READYNAS
 	DPRINTF(E_WARN, L_GENERAL, "Starting " SERVER_NAME " version " MINIDLNA_VERSION ".\n");
 	unlink("/ramfs/.upnp-av_scan");
@@ -980,6 +985,7 @@ main(int argc, char * * argv)
 	}
 #endif
 #ifdef P2P_SUPPORT
+
 //	if(
 //////			sqlite3_threadsafe() && sqlite3_libversion_number() >= 3005001 &&
 //////		    GETFLAG(P2P_MASK) &&

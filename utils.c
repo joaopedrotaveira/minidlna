@@ -336,6 +336,7 @@ is_video(const char * file)
 		 */
 		ends_with(file, ".xml") ||
 		ends_with(file, ".m3u8") ||
+		ends_with(file, ".mpd") ||
 #endif /* P2P_SUPPORT */
 		ends_with(file, ".mov") || ends_with(file, ".3gp"));
 }
