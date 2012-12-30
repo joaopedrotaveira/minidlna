@@ -1931,7 +1931,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	if(last_file.is_p2p_descriptor)
 	{
 		const char *peer_agent_ip = "localhost";
-		const char *peer_agent_port = "8080";
+		const char *peer_agent_port = "5929";
 		//char *peer_agent_url = NULL;
 		char *descriptor_data = NULL;
 		stream_descriptor_t *descriptor = NULL;
