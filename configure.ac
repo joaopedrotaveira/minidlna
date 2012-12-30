@@ -2,7 +2,8 @@ AC_INIT(MiniDLNA,1.1.0,,minidlna)
 #LT_INIT
 
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(minidlna,1.1.0)
+#AM_INIT_AUTOMAKE(minidlna,1.1.0)
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([config.h])
 
 m4_ifdef([AC_USE_SYSTEM_EXTENSIONS], [AC_USE_SYSTEM_EXTENSIONS])
@@ -406,23 +407,23 @@ done
 test x"$ac_cv_lib_sqlite3_sqlite3_open" = x"yes" || AC_MSG_ERROR([Could not find libsqlite3])
 AC_SUBST(LIBSQLITE3_LIBS)
 
-LDFLAGS_SAVE="$LDFLAGS"
-for dir in "" /usr/local $SEARCH_DIR; do
-    if test -n "$dir"; then
-        LDFLAGS="$LDFLAGS -L$dir/lib"
-    fi
-    AC_CHECK_LIB([avformat], [av_open_input_file], [LIBAVFORMAT_LIBS="-lavformat"], [unset ac_cv_lib_avformat_av_open_input_file; LDFLAGS="$LDFLAGS_SAVE"; continue])
-    AC_SUBST(LIBJPEG_LIBS)
-    break
-done
-test x"$ac_cv_lib_avformat_av_open_input_file" = x"yes" || AC_MSG_ERROR([Could not find libavformat - part of ffmpeg])
-AC_SUBST(LIBAVFORMAT_LIBS)
+#LDFLAGS_SAVE="$LDFLAGS"
+#for dir in "" /usr/local $SEARCH_DIR; do
+#    if test -n "$dir"; then
+#        LDFLAGS="$LDFLAGS -L$dir/lib"
+#    fi
+#    AC_CHECK_LIB([avformat], [av_open_input_file], [LIBAVFORMAT_LIBS="-lavformat"], [unset ac_cv_lib_avformat_av_open_input_file; LDFLAGS="$LDFLAGS_SAVE"; continue])
+#    AC_SUBST(LIBJPEG_LIBS)
+#    break
+#done
+#test x"$ac_cv_lib_avformat_av_open_input_file" = x"yes" || AC_MSG_ERROR([Could not find libavformat - part of ffmpeg])
+#AC_SUBST(LIBAVFORMAT_LIBS)
 
-AC_CHECK_LIB(avutil ,[av_rescale_q], [LIBAVUTIL_LIBS="-lavutil"], [AC_MSG_ERROR([Could not find libavutil - part of ffmpeg])])
-AC_SUBST(LIBAVUTIL_LIBS)
+#AC_CHECK_LIB(avutil ,[av_rescale_q], [LIBAVUTIL_LIBS="-lavutil"], [AC_MSG_ERROR([Could not find libavutil - part of ffmpeg])])
+#AC_SUBST(LIBAVUTIL_LIBS)
 
-AC_CHECK_LIB(avcodec ,[avcodec_init], [LIBAVCODEC_LIBS="-lavcodec"], [AC_MSG_ERROR([Could not find libavcodec - part of ffmpeg])])
-AC_SUBST(LIBAVCODEC_LIBS)
+#AC_CHECK_LIB(avcodec ,[avcodec_init], [LIBAVCODEC_LIBS="-lavcodec"], [AC_MSG_ERROR([Could not find libavcodec - part of ffmpeg])])
+#AC_SUBST(LIBAVCODEC_LIBS)
 
 AC_CHECK_LIB(pthread, pthread_create)
 

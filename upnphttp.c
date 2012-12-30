@@ -1932,12 +1932,12 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	{
 		const char *peer_agent_ip = "localhost";
 		const char *peer_agent_port = "8080";
-		char *peer_agent_url = NULL;
+		//char *peer_agent_url = NULL;
 		char *descriptor_data = NULL;
 		stream_descriptor_t *descriptor = NULL;
 		char *peer_client_error = NULL;
 		clip_representation_t *clip_representation = NULL;
-		char *resources_base_url = NULL;
+		//char *resources_base_url = NULL;
 
 		char *bytes = NULL;
 		char *bytes_tmp = NULL;
@@ -1983,20 +1983,24 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			goto error;
 		}
 
+		int direct_access = 0;
+
 		if(ends_with(last_file.path,".xml") && stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/saracen-manifest+xml",&peer_client_error)<0){
 			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
-			if(descriptor_data) free(descriptor_data);
-			if(peer_client_error) free(peer_client_error);
-			if(file) fclose(file);
-			if(descriptor) stream_descriptor_free(descriptor);
-			goto error;
+			//if(descriptor_data) free(descriptor_data);
+			//if(peer_client_error) free(peer_client_error);
+			//if(file) fclose(file);
+			//if(descriptor) stream_descriptor_free(descriptor);
+			//goto error;
+			direct_access = 1;
 		} else if(ends_with(last_file.path,".mpd") && stream_descriptor_get_swarm_id(descriptor) && peer_engine_client_load_descriptor(peer_agent_ip, peer_agent_port, descriptor_data,"application/dash+xml",&peer_client_error)<0){
 			DPRINTF(E_ERROR, L_HTTP, "Error loading descriptor in peer agent: %s\n",(peer_client_error)?peer_client_error:"Unknown error");
-			if(descriptor_data) free(descriptor_data);
-			if(peer_client_error) free(peer_client_error);
-			if(file) fclose(file);
-			if(descriptor) stream_descriptor_free(descriptor);
-			goto error;
+			//if(descriptor_data) free(descriptor_data);
+			//if(peer_client_error) free(peer_client_error);
+			//if(file) fclose(file);
+			//if(descriptor) stream_descriptor_free(descriptor);
+			//goto error;
+			direct_access = 1;
 		}
 
 		if(descriptor_data) free(descriptor_data);
@@ -2029,11 +2033,14 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		if(stream_descriptor_get_swarm_id(descriptor)){
 			stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,peer_agent_ip);
 			stream_descriptor_fetch_engine_context_set_peer_port(sdfe_context,peer_agent_port);
+			if(direct_access){
+				stream_descriptor_fetch_engine_context_set_mode(sdfe_context,STREAM_DESCRIPTOR_DIRECT_FETCH);
+			}
 		} else {
-			stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"monster.taveiranet.com");
-			if(strstr(last_file.path,"mozart"))
-				stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"saracen2.inov.pt");
-			stream_descriptor_fetch_engine_context_set_peer_port(sdfe_context,"80");
+			//stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"monster.taveiranet.com");
+			//if(strstr(last_file.path,"mozart"))
+			//	stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"saracen2.inov.pt");
+			//stream_descriptor_fetch_engine_context_set_peer_port(sdfe_context,"80");
 		}
 
 //		if( h->reqflags & FLAG_RANGE )

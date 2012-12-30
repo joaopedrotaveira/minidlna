@@ -866,9 +866,9 @@ main(int argc, char * * argv)
 	int last_changecnt = 0;
 	pid_t scanner_pid = 0;
 	pthread_t inotify_thread = 0;
-#ifdef P2P_SUPPORT
-	pthread_t content_manager_thread = 0;
-#endif /* P2P_SUPPORT */
+//#ifdef P2P_SUPPORT
+//	pthread_t content_manager_thread = 0;
+//#endif /* P2P_SUPPORT */
 	struct media_dir_s *media_path, *last_path;
 	struct album_art_name_s *art_names, *last_name;
 #ifdef TIVO_SUPPORT

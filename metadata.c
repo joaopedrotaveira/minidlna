@@ -801,8 +801,8 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 
 	clip_representation_t *clip_representation = NULL;
 
-	struct tm *modtime;
-	time_t t;
+//	struct tm *modtime;
+//	time_t t;
 	long duration_millis = 0;
 	int hours, min, sec, ms;
 
@@ -906,7 +906,8 @@ int GetStreamDescriptorMetadata(metadata_t * m, const char * path, const char * 
 		}else{
 			return 1;
 		}
-	} else if(ends_with(path, ".mpd") && (descriptor = peer_engine_client_get_descriptor_from_file(path,"application/dash+xml",NULL)) != NULL){
+//	} else if(ends_with(path, ".mpd") && (descriptor = peer_engine_client_get_descriptor_from_file(path,"application/dash+xml",NULL)) != NULL){
+	} else if(ends_with(path, ".mpd") && (descriptor = peer_engine_client_get_descriptor_from_file(path,NULL)) != NULL){
 		if(GetStreamDescriptorMetadataDash(m,path,name,descriptor)<0){
 			DPRINTF(E_WARN, L_METADATA, "Could not load %s\n", path);
 			return 0;

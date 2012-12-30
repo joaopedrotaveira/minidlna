@@ -26,9 +26,6 @@ minidlna_LDADD = \
 	@LIBJPEG_LIBS@ \
 	@LIBID3TAG_LIBS@ \
 	@LIBSQLITE3_LIBS@ \
-	@LIBAVFORMAT_LIBS@ \
-	@LIBAVUTIL_LIBS@ \
-	@LIBAVCODEC_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBDL_LIBS@ \
 	@LIBRT_LIBS@ \
@@ -37,6 +34,8 @@ minidlna_LDADD = \
 	@LIBP2P_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
 
+#@LIBAVFORMAT_LIBS@ @LIBAVUTIL_LIBS@ @LIBAVCODEC_LIBS@
+
 minidlna_LDFLAGS = @STATIC_LDFLAGS@
 
 testupnpdescgen_SOURCES = testupnpdescgen.c upnpdescgen.c
@@ -44,13 +43,12 @@ testupnpdescgen_LDADD = \
 	@LIBJPEG_LIBS@ \
 	@LIBID3TAG_LIBS@ \
 	@LIBSQLITE3_LIBS@ \
-	@LIBAVFORMAT_LIBS@ \
-	@LIBAVUTIL_LIBS@ \
-	@LIBAVCODEC_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBDL_LIBS@ \
 	@LIBP2P_LIBS@ \
 	-lpthread  -lFLAC  $(flacoggflag) $(vorbisflag)
+
+#@LIBAVFORMAT_LIBS@ @LIBAVUTIL_LIBS@ @LIBAVCODEC_LIBS@
 
 
 ACLOCAL_AMFLAGS = -I m4
