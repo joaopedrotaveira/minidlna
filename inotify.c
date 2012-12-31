@@ -351,6 +351,10 @@ inotify_insert_file(char * name, const char * path)
 	{
 		if( ts > 0 )
 			DPRINTF(E_DEBUG, L_INOTIFY, "%s is newer than the last db entry.\n", path);
+		if( ts > 0 ) {
+			DPRINTF(E_DEBUG, L_INOTIFY, "%s is newer than the last db entry... but exists.. lets return.\n", path);
+			return depth;
+		}
 		inotify_remove_file(path);
 	}
 

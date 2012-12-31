@@ -1833,7 +1833,8 @@ video_no_dlna_p2p:
 	                   "  TITLE, CREATOR, ARTIST, GENRE, COMMENT, DLNA_PN, MIME, ALBUM_ART) "
 	                   "VALUES"
 	                   " (%Q, %lld, %ld, %Q, %Q, %Q, %Q, %Q, %Q, '%q', %Q, %Q, %Q, %Q, %Q, '%q', %lld);",
-	                   path, (is_stream_descriptor)?0:(long long)file.st_size, (is_stream_descriptor)?0:file.st_mtime, m.duration,
+	                   //path, (is_stream_descriptor)?0:(long long)file.st_size, (is_stream_descriptor)?0:file.st_mtime, m.duration,
+	    	           path, (is_stream_descriptor)?0:(long long)file.st_size,file.st_mtime, m.duration,
 	                   m.date, m.channels, m.bitrate, m.frequency, m.resolution,
 			   m.title, m.creator, m.artist, m.genre, m.comment, m.dlna_pn,
                            m.mime, album_art);
