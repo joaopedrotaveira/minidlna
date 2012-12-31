@@ -369,7 +369,7 @@ inotify_insert_file(char * name, const char * path)
 
 		do
 		{
-			//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Checking %s\n", parent_buf);
+			DPRINTF(E_DEBUG, L_INOTIFY, "Checking %s\n", parent_buf);
 			id = sql_get_text_field(db, "SELECT OBJECT_ID from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
 			                            " where d.PATH = '%q' and REF_ID is NULL", parent_buf);
 			if( id )
@@ -404,13 +404,13 @@ inotify_insert_file(char * name, const char * path)
 
 	if( !depth )
 	{
-		//DEBUG DPRINTF(E_DEBUG, L_INOTIFY, "Inserting %s\n", name);
+		DPRINTF(E_DEBUG, L_INOTIFY, "Inserting %s\n", name);
 		insert_file(name, path, id+2, get_next_available_id("OBJECTS", id));
 		sqlite3_free(id);
 		if( (is_audio(path) || is_playlist(path)) && next_pl_fill != 1 )
 		{
 			next_pl_fill = time(NULL) + 120; // Schedule a playlist scan for 2 minutes from now.
-			//DEBUG DPRINTF(E_WARN, L_INOTIFY,  "Playlist scan scheduled for %s", ctime(&next_pl_fill));
+			DPRINTF(E_WARN, L_INOTIFY,  "Playlist scan scheduled for %s", ctime(&next_pl_fill));
 		}
 	}
 	return depth;
