@@ -145,10 +145,11 @@ dlna_timestamp_is_present(const char * filename, int * raw_packet_size)
 {
 	unsigned char buffer[3*MPEG_TS_PACKET_LENGTH_DLNA];
 	int fd, i;
+	int retval;
 
 	/* read file header */
 	fd = open(filename, O_RDONLY);
-	read(fd, buffer, MPEG_TS_PACKET_LENGTH_DLNA*3);
+	retval = read(fd, buffer, MPEG_TS_PACKET_LENGTH_DLNA*3); (void)retval;
 	close(fd);
 	for( i=0; i < MPEG_TS_PACKET_LENGTH_DLNA; i++ )
 	{
@@ -180,13 +181,14 @@ dlna_timestamp_is_present(const char * filename, int * raw_packet_size)
 int
 is_tivo_file(const char * path)
 {
+	int retval;
 	unsigned char buf[5];
 	unsigned char hdr[5] = { 'T','i','V','o','\0' };
 	int fd;
 
 	/* read file header */
 	fd = open(path, O_RDONLY);
-	read(fd, buf, 5);
+	retval = read(fd, buf, 5); (void)retval;
 	close(fd);
 
 	return( !memcmp(buf, hdr, 5) );
@@ -796,10 +798,8 @@ int GetManifestMetadata(metadata_t * m, const char * path, const char * name, ma
 }
 
 int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const char * name, stream_descriptor_t *descriptor){
-//	const clip_v2_t *clip = NULL;
-//	const representation_v2_t *representation = NULL;
-
-	clip_representation_t *clip_representation = NULL;
+	//clip_representation_t *clip_representation = NULL;
+	representation_meta_t *representation_meta = NULL;
 
 //	struct tm *modtime;
 //	time_t t;
@@ -809,9 +809,8 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 	DPRINTF(E_WARN, L_METADATA, "GetStreamDescriptorMetadataDash (%s) file %s\n", name, path);
 	if(descriptor == NULL) return 0;
 
-	clip_representation = stream_descriptor_get_clip_representation_by_index(descriptor,0);
-//	clip = manifest_v2_get_clip_by_index(manifest,0);
-//	representation = clip_v2_get_representation_by_index(clip,0);
+	//clip_representation = stream_descriptor_get_clip_representation_by_index(descriptor,0);
+	representation_meta = stream_descriptor_get_representation_meta_by_index(descriptor,0);
 
 //	if( !m->date && manifest_v2_get_update_time(manifest)>0)
 //	{
@@ -821,27 +820,18 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 //		strftime(m->date, 20, "%FT%T", modtime);
 //	}
 
-	//TODO
-	/*if(clip_representation_get_description(clip_representation)){
-		m->title = strdup(clip_representation_get_description(clip_representation));
-	}*/
-//	if(clip_v2_get_description(clip))
-//	{
-//		m->title = strdup(clip_v2_get_description(clip));
-//	}
+	if(representation_meta && representation_meta_get_title(representation_meta)){
+		m->title = strdup(representation_meta_get_title(representation_meta));
+	}
 
 //	if(representation_v2_get_audio_channels(representation))
 //	{
 //		m->channels = strdup(representation_v2_get_audio_channels(representation));
 //	}
 
-	if(clip_representation_get_bitrate(clip_representation)>0){
-		m->bitrate = ppsp_strdup_printf("%l",clip_representation_get_bitrate(clip_representation));
+	if(representation_meta && representation_meta_get_bit_rate(representation_meta)>0){
+		m->bitrate = ppsp_strdup_printf("%l",representation_meta_get_bit_rate(representation_meta));
 	}
-//	if(representation_v2_get_bit_rate(representation))
-//	{
-//		m->bitrate = strdup(representation_v2_get_bit_rate(representation));
-//	}
 
 //	if(representation_v2_get_audio_sample_rate(representation)>0)
 //	{
@@ -853,17 +843,15 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 //		xasprintf(&m->bps,"%u",representation_v2_get_samples_per_frame(representation));
 //	}
 
-//	if(representation_v2_get_width(representation) > 0 &&
-//		representation_v2_get_height(representation) > 0)
-//	{
-//		xasprintf(&m->resolution, "%dx%d",
-//				representation_v2_get_width(representation),
-//				representation_v2_get_height(representation));
-//	}
+	if(representation_meta && representation_meta_get_width(representation_meta) > 0 &&
+			representation_meta_get_height(representation_meta) > 0)
+	{
+		xasprintf(&m->resolution, "%dx%d",
+				representation_meta_get_width(representation_meta),
+				representation_meta_get_height(representation_meta));
+	}
 
-	//TODO: ...
-	/*duration_millis = clip_representation_get_duration(clip_representation);*/
-//	duration_millis = clip_v2_get_duration_millis(clip);
+	duration_millis = representation_meta_get_duration_millis(representation_meta);
 	if(duration_millis>0)
 	{
 		hours = (int)(duration_millis / 3600000);
@@ -873,22 +861,13 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 		xasprintf(&m->duration, "%d:%02d:%02d.%03d", hours, min, sec, ms);
 	}
 
-	if(clip_representation_get_mime_type(clip_representation)){
-		if(!strcasecmp(clip_representation_get_mime_type(clip_representation),"video/MP2T"))
+	if(representation_meta_get_mime_type(representation_meta)){
+		if(!strcasecmp(representation_meta_get_mime_type(representation_meta),"video/MP2T"))
 			//m->mime = strdup("video/mpeg");
 			m->mime = strdup("video/vnd.dlna.mpeg-tts");
 		else
-			m->mime = strdup(clip_representation_get_mime_type(clip_representation));
+			m->mime = strdup(representation_meta_get_mime_type(representation_meta));
 	}
-//	if(representation_v2_get_mime_type(representation))
-//	{
-//		if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
-//			//m->mime = strdup("video/mpeg");
-//			m->mime = strdup("video/vnd.dlna.mpeg-tts");
-//		else
-//			m->mime = strdup(representation_v2_get_mime_type(representation));
-//	}
-
 	stream_descriptor_print(descriptor);
 	return 1;
 }
@@ -940,7 +919,8 @@ GetVideoMetadata(const char * path, char * name)
 	struct song_metadata video;
 	metadata_t m;
 	uint32_t free_flags = 0xFFFFFFFF;
-	char *path_cpy = NULL, *basepath;
+	char *path_cpy = NULL;
+	//char *basepath = NULL;
 	int is_stream_descriptor = 0;
 
 	memset(&m, '\0', sizeof(m));
@@ -996,7 +976,7 @@ GetVideoMetadata(const char * path, char * name)
 //		}
 //	}
 	path_cpy = strdup(path);
-	basepath = basename(path_cpy);
+	//basepath = basename(path_cpy);
 //	if( !vc )
 //	{
 //		/* This must not be a video file. */
