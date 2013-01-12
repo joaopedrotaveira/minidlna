@@ -2107,7 +2107,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	{
 		h->req_RangeEnd = size - 1;
 		total = size;
-		strcatf(&str, "Content-Length: %jd\r\n", (intmax_t)total);
+		//strcatf(&str, "Content-Length: %jd\r\n", (intmax_t)total);
 	}
 
 #if USE_FORK
