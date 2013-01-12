@@ -733,6 +733,8 @@ callback(void *args, int argc, char **argv, char **azColName)
 	struct string_s *str = passed_args->str;
 	int ret = 0;
 
+	const char *dlna_op = "01";
+
 	/* Make sure we have at least 8KB left of allocated memory to finish the response. */
 	if( str->off > (str->size - 8192) )
 	{
@@ -774,6 +776,9 @@ callback(void *args, int argc, char **argv, char **azColName)
 		if( *mime == 'v' )
 		{
 			dlna_flags |= DLNA_FLAG_TM_S;
+
+			dlna_flags |= DLNA_FLAG_LOP_NPT;
+
 			if( passed_args->flags & FLAG_MIME_AVI_DIVX )
 			{
 				if( strcmp(mime, "video/x-msvideo") == 0 )
@@ -850,15 +855,15 @@ callback(void *args, int argc, char **argv, char **azColName)
 
 		if( dlna_pn )
 			snprintf(dlna_buf, sizeof(dlna_buf), "DLNA.ORG_PN=%s;"
-			                                     "DLNA.ORG_OP=01;"
+			                                     "DLNA.ORG_OP=%s;"
 			                                     "DLNA.ORG_CI=0;"
 			                                     "DLNA.ORG_FLAGS=%08X%024X",
-			                                     dlna_pn, dlna_flags, 0);
+			                                     dlna_pn, dlna_op, dlna_flags, 0);
 		else if( passed_args->flags & FLAG_DLNA )
-			snprintf(dlna_buf, sizeof(dlna_buf), "DLNA.ORG_OP=01;"
+			snprintf(dlna_buf, sizeof(dlna_buf), "DLNA.ORG_OP=%s;"
 			                                     "DLNA.ORG_CI=0;"
 			                                     "DLNA.ORG_FLAGS=%08X%024X",
-			                                     dlna_flags, 0);
+			                                     dlna_op, dlna_flags, 0);
 		else
 			strcpy(dlna_buf, "*");
 
@@ -975,7 +980,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 					     strncmp(dlna_pn, "AVC_TS_MP_HD_AC3", 16) == 0 ||
 					     strncmp(dlna_pn, "AVC_TS_HP_HD_AC3", 16) == 0))
 					{
-						sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_NTSC");
+						sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=%s;DLNA.ORG_CI=0", "MPEG_PS_NTSC", dlna_op);
 						add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        resolution, dlna_buf, mime, detailID, ext, passed_args);
 					}
@@ -987,13 +992,13 @@ callback(void *args, int argc, char **argv, char **azColName)
 					{
 						if( strncmp(dlna_pn, "MPEG_TS_SD_NA", 13) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_TS_SD_NA");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=%s;DLNA.ORG_CI=0", "MPEG_TS_SD_NA", dlna_op);
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 							        resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
 						if( strncmp(dlna_pn, "MPEG_TS_SD_EU", 13) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_TS_SD_EU");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=%s;DLNA.ORG_CI=0", "MPEG_TS_SD_EU", dlna_op);
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 							        resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
@@ -1008,13 +1013,13 @@ callback(void *args, int argc, char **argv, char **azColName)
 						strcpy(mime+6, "avi");
 						if( !dlna_pn || strncmp(dlna_pn, "MPEG_PS_NTSC", 12) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_NTSC");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=%s;DLNA.ORG_CI=0", "MPEG_PS_NTSC", dlna_op);
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        	resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}
 						if( !dlna_pn || strncmp(dlna_pn, "MPEG_PS_PAL", 11) != 0 )
 						{
-							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=01;DLNA.ORG_CI=0", "MPEG_PS_PAL");
+							sprintf(dlna_buf, "DLNA.ORG_PN=%s;DLNA.ORG_OP=%s;DLNA.ORG_CI=0", "MPEG_PS_PAL", dlna_op);
 							add_res(size, duration, bitrate, sampleFrequency, nrAudioChannels,
 						        	resolution, dlna_buf, mime, detailID, ext, passed_args);
 						}

@@ -365,6 +365,11 @@ ParseHttpHeaders(struct upnphttp * h)
 					h->req_client = EMediaRoom;
 					h->reqflags |= FLAG_MS_PFS;
 				}
+				else if(strstrc(p, "MediaCenter", '\r')) // User-Agent: MCML/2006; MCML/2008; MediaCenter 6.1.7601.17514 // Windows
+				{
+					h->req_client = EMediaRoom;
+					h->reqflags |= FLAG_MS_PFS;
+				}
 				else if(strstrc(p, "LGE_DLNA_SDK", '\r'))
 				{
 					h->req_client = ELGDevice;
@@ -1794,10 +1799,13 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	int rows, ret;
 	char date[30];
 	time_t curtime = time(NULL);
-	off_t total, offset, size;
+	off_t total, offset, size = -1;
 	sqlite_int64 id;
-	int sendfh;
+	int sendfh = -1;
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B;
+
+	dlna_flags |= DLNA_FLAG_LOP_NPT;
+
 	static struct { sqlite_int64 id;
 	                enum client_types client;
 	                char path[PATH_MAX];
@@ -1818,8 +1826,11 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	id = strtoll(object, NULL, 10);
 	if( h->reqflags & FLAG_MS_PFS )
 	{
-		if( strstr(object, "?albumArt=true") )
+		DPRINTF(E_DEBUG, L_HTTP, "FOUND FLAG_MS_PFS\n");
+
+		if( strstr(object, "?albumArt=true") || strstr(object, "?AlbumArt=true") )
 		{
+			DPRINTF(E_DEBUG, L_HTTP, "FOUND FLAG_MS_PFS albumArt=true\n");
 			char *art;
 			art = sql_get_text_field(db, "SELECT ALBUM_ART from DETAILS where ID = '%lld'", id);
 			SendResp_albumArt(h, art);
@@ -1850,7 +1861,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		strncpy(last_file.path, result[3], sizeof(last_file.path)-1);
 #ifdef P2P_SUPPORT
 		if(ends_with(last_file.path,".xml") || ends_with(last_file.path,".m3u8") || ends_with(last_file.path,".mpd")){
-			DPRINTF(E_DEBUG, L_HTTP, "%s is P2P Descriptor\n", last_file.path);
+			DPRINTF(E_DEBUG, L_HTTP, "%s is P2P Descriptor (%s)\n", last_file.path, last_file.mime);
 			last_file.is_p2p_descriptor = 1;
 		} else {
 			last_file.is_p2p_descriptor = 0;
@@ -2146,9 +2157,9 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	              "Date: %s\r\n"
 	              "EXT:\r\n"
 	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-	              "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
+            	  "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
 	              "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-				  date, last_file.dlna, 1, 0, dlna_flags, 0);
+				  date, last_file.dlna, 0x11, 0, dlna_flags, 0);
 
 	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
@@ -2188,7 +2199,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
  		if( h->req_command != EHead )
 			send_file(h, sendfh, offset, h->req_RangeEnd);
 	}
-	close(sendfh);
+	if(sendfh>0)
+		close(sendfh);
 
 	CloseSocket_upnphttp(h);
 error:

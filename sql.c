@@ -235,7 +235,8 @@ db_upgrade(sqlite3 *db)
 	if (db_vers < 8)
 	{
 		DPRINTF(E_WARN, L_DB_SQL, "Updating DB version to v%d.\n", 8);
-		ret = sql_exec(db, "UPDATE DETAILS set DLNA_PN = replace(DLNA_PN, ';DLNA.ORG_OP=01;DLNA.ORG_CI=0', '')");
+		//ret = sql_exec(db, "UPDATE DETAILS set DLNA_PN = replace(DLNA_PN, ';DLNA.ORG_OP=01;DLNA.ORG_CI=0', '')");
+		ret = sql_exec(db, "UPDATE DETAILS set DLNA_PN = replace(DLNA_PN, ';DLNA.ORG_CI=0', '')");
 		if( ret != SQLITE_OK )
 			return 8;
 	}
