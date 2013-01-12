@@ -786,9 +786,9 @@ int GetManifestMetadata(metadata_t * m, const char * path, const char * name, ma
 
 	if(representation_v2_get_mime_type(representation))
 	{
-		if(!strcmp(representation_v2_get_mime_type(representation),"video/MP2T"))
-			//m->mime = strdup("video/mpeg");
-			m->mime = strdup("video/vnd.dlna.mpeg-tts");
+		if(!strcasecmp(representation_v2_get_mime_type(representation),"video/MP2T"))
+			m->mime = strdup("video/mpeg");
+			//m->mime = strdup("video/vnd.dlna.mpeg-tts");
 		else
 			m->mime = strdup(representation_v2_get_mime_type(representation));
 	}
@@ -798,7 +798,6 @@ int GetManifestMetadata(metadata_t * m, const char * path, const char * name, ma
 }
 
 int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const char * name, stream_descriptor_t *descriptor){
-	//clip_representation_t *clip_representation = NULL;
 	representation_meta_t *representation_meta = NULL;
 
 //	struct tm *modtime;
@@ -809,7 +808,6 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 	DPRINTF(E_WARN, L_METADATA, "GetStreamDescriptorMetadataDash (%s) file %s\n", name, path);
 	if(descriptor == NULL) return 0;
 
-	//clip_representation = stream_descriptor_get_clip_representation_by_index(descriptor,0);
 	representation_meta = stream_descriptor_get_representation_meta_by_index(descriptor,0);
 
 //	if( !m->date && manifest_v2_get_update_time(manifest)>0)
@@ -829,8 +827,10 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 //		m->channels = strdup(representation_v2_get_audio_channels(representation));
 //	}
 
+	long bit_rate = 0;
 	if(representation_meta && representation_meta_get_bit_rate(representation_meta)>0){
-		m->bitrate = ppsp_strdup_printf("%l",representation_meta_get_bit_rate(representation_meta));
+		bit_rate = representation_meta_get_bit_rate(representation_meta);
+		m->bitrate = ppsp_strdup_printf("%l",bit_rate);
 	}
 
 //	if(representation_v2_get_audio_sample_rate(representation)>0)
@@ -843,12 +843,14 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 //		xasprintf(&m->bps,"%u",representation_v2_get_samples_per_frame(representation));
 //	}
 
+	int width = 0;
+	int height = 0;
 	if(representation_meta && representation_meta_get_width(representation_meta) > 0 &&
 			representation_meta_get_height(representation_meta) > 0)
 	{
-		xasprintf(&m->resolution, "%dx%d",
-				representation_meta_get_width(representation_meta),
-				representation_meta_get_height(representation_meta));
+		width = representation_meta_get_width(representation_meta);
+		height = representation_meta_get_height(representation_meta);
+		xasprintf(&m->resolution, "%dx%d",width,height);
 	}
 
 	duration_millis = representation_meta_get_duration_millis(representation_meta);
@@ -863,11 +865,191 @@ int GetStreamDescriptorMetadataDash(metadata_t * m, const char * path, const cha
 
 	if(representation_meta_get_mime_type(representation_meta)){
 		if(!strcasecmp(representation_meta_get_mime_type(representation_meta),"video/MP2T"))
-			//m->mime = strdup("video/mpeg");
-			m->mime = strdup("video/vnd.dlna.mpeg-tts");
+			m->mime = strdup("video/mpeg");
+			//m->mime = strdup("video/vnd.dlna.mpeg-tts");
 		else
 			m->mime = strdup(representation_meta_get_mime_type(representation_meta));
 	}
+
+	// ----------------
+	int vc_profile = FF_PROFILE_SKIP;
+	int scanfretval = 0;
+
+	if(representation_meta_get_codecs(representation_meta) && strstr(representation_meta_get_codecs(representation_meta),"avc1")){
+		char profile_idc[5] = {0};
+		profile_idc[0] = '0';
+		profile_idc[1] = 'x';
+		strncpy(profile_idc+2,strstr(representation_meta_get_codecs(representation_meta),"avc1.")+strlen("avc1."),2);
+		vc_profile = (int) strtod(profile_idc,NULL);
+		DPRINTF(E_DEBUG, L_METADATA, "Found profile(%s): %d. [%s] (ret: %d)\n",profile_idc, vc_profile, path,scanfretval);
+	}
+
+	// ----------------
+
+	int off;
+//	int duration;
+	enum audio_profiles audio_profile = PROFILE_AUDIO_AAC;
+	ts_timestamp_t ts_timestamp = NONE;
+
+	m->dlna_pn = malloc(128);
+	off = sprintf(m->dlna_pn, "AVC_");
+
+//	if( strcmp(ctx->iformat->name, "mpegts") == 0 )
+//	{
+//	AVRational display_aspect_ratio;
+//	int fps, interlaced;
+//	int raw_packet_size;
+//	int dlna_ts_present = dlna_timestamp_is_present(path, &raw_packet_size);
+
+	off += sprintf(m->dlna_pn+off, "TS_");
+//	if (vc->sample_aspect_ratio.num) {
+//		av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+//				  vc->width  * vc->sample_aspect_ratio.num,
+//				  vc->height * vc->sample_aspect_ratio.den,
+//				  1024*1024);
+//	}
+//	fps = ctx->streams[video_stream]->r_frame_rate.num / ctx->streams[video_stream]->r_frame_rate.den;
+//	interlaced = (ctx->streams[video_stream]->r_frame_rate.num / vc->time_base.den);
+//	if( ((((vc->width == 1920 || vc->width == 1440) && vc->height == 1080) ||
+//		  (vc->width == 720 && vc->height == 480)) && fps == 59 && interlaced) ||
+//		((vc->width == 1280 && vc->height == 720) && fps == 59 && !interlaced) )
+//	{
+//		if( (vc->profile == FF_PROFILE_H264_MAIN || vc->profile == FF_PROFILE_H264_HIGH) &&
+//			audio_profile == PROFILE_AUDIO_AC3 )
+//		{
+//			off += sprintf(m->dlna_pn+off, "HD_60_");
+//			vc->profile = FF_PROFILE_SKIP;
+//		}
+//	}
+//	else if( ((vc->width == 1920 && vc->height == 1080) ||
+//			  (vc->width == 1440 && vc->height == 1080) ||
+//			  (vc->width == 1280 && vc->height ==  720) ||
+//			  (vc->width ==  720 && vc->height ==  576)) &&
+//			  interlaced && fps == 50 )
+//	{
+//		if( (vc->profile == FF_PROFILE_H264_MAIN || vc->profile == FF_PROFILE_H264_HIGH) &&
+//			audio_profile == PROFILE_AUDIO_AC3 )
+//		{
+//			off += sprintf(m->dlna_pn+off, "HD_50_");
+//			vc->profile = FF_PROFILE_SKIP;
+//		}
+//	}
+	switch( vc_profile )
+	{
+		case FF_PROFILE_H264_BASELINE:
+			off += sprintf(m->dlna_pn+off, "BL_");
+			if( width  <= 352 &&
+				height <= 288 &&
+				bit_rate <= 384000 )
+			{
+				off += sprintf(m->dlna_pn+off, "CIF15_");
+				break;
+			}
+			else if( width  <= 352 &&
+					 height <= 288 &&
+					 bit_rate <= 3000000 )
+			{
+				off += sprintf(m->dlna_pn+off, "CIF30_");
+				break;
+			}
+			/* Fall back to Main Profile if it doesn't match a Baseline DLNA profile. */
+			else
+				off -= 3;
+		default:
+		case FF_PROFILE_H264_MAIN:
+			off += sprintf(m->dlna_pn+off, "MP_");
+//			if( vc->profile != FF_PROFILE_H264_BASELINE &&
+//				vc->profile != FF_PROFILE_H264_MAIN )
+//			{
+//				DPRINTF(E_DEBUG, L_METADATA, "Unknown AVC profile %d; assuming MP. [%s]\n",vc->profile, basepath);
+//			}
+			if( width  <= 720 &&
+				height <= 576 &&
+				bit_rate <= 10000000 )
+			{
+				off += sprintf(m->dlna_pn+off, "SD_");
+			}
+			else if( width  <= 1920 &&
+					 height <= 1152 &&
+					 bit_rate <= 20000000 )
+			{
+				off += sprintf(m->dlna_pn+off, "HD_");
+			}
+			else
+			{
+				DPRINTF(E_DEBUG, L_METADATA, "Unsupported h.264 video profile! [%s, %dx%d, %dbps : %s]\n", m->dlna_pn, width, height, bit_rate, path);
+				free(m->dlna_pn);
+				m->dlna_pn = NULL;
+			}
+			break;
+		case FF_PROFILE_H264_HIGH:
+			off += sprintf(m->dlna_pn+off, "HP_");
+			if( width  <= 1920 &&
+				height <= 1152 &&
+				bit_rate <= 30000000 &&
+				audio_profile == PROFILE_AUDIO_AC3 )
+			{
+				off += sprintf(m->dlna_pn+off, "HD_");
+			}
+			else
+			{
+				DPRINTF(E_DEBUG, L_METADATA, "Unsupported h.264 HP video profile! [%dbps, %d audio : %s]\n", bit_rate, audio_profile, path);
+				free(m->dlna_pn);
+				m->dlna_pn = NULL;
+			}
+			break;
+		case FF_PROFILE_SKIP:
+			break;
+	}
+	switch( audio_profile )
+	{
+		case PROFILE_AUDIO_MP3:
+			off += sprintf(m->dlna_pn+off, "MPEG1_L3");
+			break;
+		case PROFILE_AUDIO_AC3:
+			off += sprintf(m->dlna_pn+off, "AC3");
+			break;
+		case PROFILE_AUDIO_AAC:
+		case PROFILE_AUDIO_AAC_MULT5:
+			off += sprintf(m->dlna_pn+off, "AAC_MULT5");
+			break;
+		default:
+			DPRINTF(E_DEBUG, L_METADATA, "No DLNA profile found for %s file [%s]\n", m->dlna_pn, path);
+			free(m->dlna_pn);
+			m->dlna_pn = NULL;
+			break;
+	}
+//	if( raw_packet_size == MPEG_TS_PACKET_LENGTH_DLNA )
+//	{
+//		if( vc->profile == FF_PROFILE_H264_HIGH || dlna_ts_present )
+//			ts_timestamp = VALID;
+//		else
+//			ts_timestamp = EMPTY;
+//	}
+//	else if( raw_packet_size != MPEG_TS_PACKET_LENGTH )
+//	{
+//		DPRINTF(E_DEBUG, L_METADATA, "Unsupported DLNA TS packet size [%d] (%s)\n", raw_packet_size, path);
+//		free(m->dlna_pn);
+//		m->dlna_pn = NULL;
+//	}
+	switch( ts_timestamp )
+	{
+		case NONE:
+			if( m->dlna_pn )
+				off += sprintf(m->dlna_pn+off, "_ISO");
+			break;
+		case VALID:
+			off += sprintf(m->dlna_pn+off, "_T");
+			xasprintf(&m->mime, "video/vnd.dlna.mpeg-tts");
+			break;
+		case EMPTY:
+			xasprintf(&m->mime, "video/vnd.dlna.mpeg-tts");
+			break;
+		default:
+			break;
+	}
+	// ----------------
+
 	stream_descriptor_print(descriptor);
 	return 1;
 }

@@ -2007,6 +2007,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		if(peer_client_error) free(peer_client_error);
 		if(file) fclose(file);
 
+		direct_access = 0;
+
 		http_register_fetch_method();
 		simple_fetch_engine_register();
 		stream_descriptor_fetch_engine_register();
@@ -2154,6 +2156,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 #ifdef P2P_SUPPORT
 
 		//FIXME: do not send data if request == EHead
+		if(h->reqflags & FLAG_TIMESEEK)
+			DPRINTF(E_DEBUG, L_HTTP, "TimeSeekRange ...\n");
 
 #define BLABYTES 10240
 		ssize_t to_read = BLABYTES;
