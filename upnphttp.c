@@ -2152,6 +2152,9 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 #ifdef P2P_SUPPORT
+
+		//FIXME: do not send data if request == EHead
+
 #define BLABYTES 10240
 		ssize_t to_read = BLABYTES;
 		ssize_t bytes_read = BLABYTES;
