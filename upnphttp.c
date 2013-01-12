@@ -2148,7 +2148,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
 	              "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
 	              "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-	              date, last_file.dlna, 1, 0, dlna_flags, 0);
+				  date, last_file.dlna, 1, 0, dlna_flags, 0);
 
 	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
