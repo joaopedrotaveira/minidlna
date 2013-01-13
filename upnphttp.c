@@ -2181,7 +2181,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 		representation_meta_t *representation_meta = stream_descriptor_get_representation_meta_by_index(descriptor,0);
 		int availableSeekRangeMode = 1;
 		if(representation_meta && representation_meta_get_duration_millis(representation_meta)>0){
-			strcatf(&str,"TimeSeekRange.dlna.org: npt=0.00-%.2f\r\n",((double)representation_meta_get_duration_millis(representation_meta))/1000);
+			double instance_duration = ((double)representation_meta_get_duration_millis(representation_meta))/1000;
+			strcatf(&str,"TimeSeekRange.dlna.org: npt=0.00-%.2f/%.2f\r\n",instance_duration,instance_duration);
 		}
 
 		//if(h->reqflags & FLAG_GETSEEKRANGE){
@@ -2236,10 +2237,10 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 							if( errno != EAGAIN )
 								break;
 						}
-						else
-						{
-							DPRINTF(E_DEBUG, L_HTTP, "send: %d %d\n",ret,bytes_read);
-						}
+//						else
+//						{
+//							DPRINTF(E_DEBUG, L_HTTP, "send: %d %d\n",ret,bytes_read);
+//						}
 						get_current_chunk_length = 0;
 					}else if(bytes_read == 0){
 						get_current_chunk_length = 1;
@@ -2247,6 +2248,12 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 							bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,0);
 							current_chunk_length = stream_descriptor_fetch_engine_get_current_chunk_length(sdfe_context);
 							DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: #2 bytes_read: %d current_chunk_length: %ld\n",bytes_read,current_chunk_length);
+						}
+					}
+					if(bytes_read == 0){
+						if(stream_descriptor_fetch_engine_context_eos(sdfe_context)){
+							DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: EOS FOUND!\n");
+							break;
 						}
 					}
 				}
