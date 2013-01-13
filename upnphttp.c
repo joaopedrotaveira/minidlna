@@ -447,6 +447,8 @@ ParseHttpHeaders(struct upnphttp * h)
 					p++;
 				if( (*p != '1') || !isspace(p[1]) )
 					h->reqflags |= FLAG_INVALID_REQ;
+				else
+					h->reqflags |= FLAG_GETCONTENTFEAT;
 			}
 			else if(strncasecmp(line, "TimeSeekRange.dlna.org", 22)==0)
 			{
@@ -467,6 +469,8 @@ ParseHttpHeaders(struct upnphttp * h)
 					p++;
 				if( (*p != '1') || !isspace(p[1]) )
 					h->reqflags |= FLAG_INVALID_REQ;
+				else
+					h->reqflags |= FLAG_GETSEEKRANGE;
 			}
 			else if(strncasecmp(line, "transferMode.dlna.org", 21)==0)
 			{
@@ -1805,6 +1809,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	uint32_t dlna_flags = DLNA_FLAG_DLNA_V1_5|DLNA_FLAG_HTTP_STALLING|DLNA_FLAG_TM_B;
 
 	dlna_flags |= DLNA_FLAG_LOP_NPT;
+	dlna_flags |= DLNA_FLAG_LOP_BYTES;
 
 	static struct { sqlite_int64 id;
 	                enum client_types client;
@@ -1939,13 +1944,14 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 
 	offset = h->req_RangeStart;
 #ifdef P2P_SUPPORT
+	stream_descriptor_t *descriptor = NULL;
+
 	if(last_file.is_p2p_descriptor)
 	{
 		const char *peer_agent_ip = "localhost";
 		const char *peer_agent_port = "5929";
 		//char *peer_agent_url = NULL;
 		char *descriptor_data = NULL;
-		stream_descriptor_t *descriptor = NULL;
 		char *peer_client_error = NULL;
 		clip_representation_t *clip_representation = NULL;
 		//char *resources_base_url = NULL;
@@ -2040,6 +2046,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 //		simple_fetch_engine_context_set_ext(sfe_context,mime_type_get_extension(clip_representation_get_mime_type(clip_representation)));
 
 		sdfe_context = stream_descriptor_fetch_engine_context_new(descriptor);
+		stream_descriptor_fetch_engine_context_set_simulation(sdfe_context,0);
 
 		DPRINTF(E_DEBUG, L_HTTP, "LastFile.path: %s\n",last_file.path);
 
@@ -2049,6 +2056,8 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			if(direct_access){
 				stream_descriptor_fetch_engine_context_set_mode(sdfe_context,STREAM_DESCRIPTOR_DIRECT_FETCH);
 			}
+			//stream_descriptor_print(descriptor);
+
 		} else {
 			//stream_descriptor_fetch_engine_context_set_peer_ip(sdfe_context,"monster.taveiranet.com");
 			//if(strstr(last_file.path,"mozart"))
@@ -2151,53 +2160,102 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 	}
 
 	strftime(date, 30,"%a, %d %b %Y %H:%M:%S GMT" , gmtime(&curtime));
-	strcatf(&str,
-			//"Accept-Ranges: bytes\r\n"
-	              "Connection: close\r\n"
-	              "Date: %s\r\n"
-	              "EXT:\r\n"
-	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
-            	  "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
-	              "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
-				  date, last_file.dlna, 0x11, 0, dlna_flags, 0);
+//	strcatf(&str,
+//			//"Accept-Ranges: bytes\r\n"
+//	              "Connection: close\r\n"
+//	              "Date: %s\r\n"
+//	              "EXT:\r\n"
+//	              "realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n"
+//            	  "contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n"
+//	              "Server: " MINIDLNA_SERVER_STRING "\r\n\r\n",
+//				  date, last_file.dlna, (last_file.is_p2p_descriptor)?0x10:0x01, 0, dlna_flags, 0);
 
-	//DEBUG DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
+	strcatf(&str,
+			"Connection: close\r\n"
+			"Date: %s\r\n"
+			"EXT:\r\n"
+			"realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n",
+			date);
+
+	if(last_file.is_p2p_descriptor && descriptor){
+		representation_meta_t *representation_meta = stream_descriptor_get_representation_meta_by_index(descriptor,0);
+		int availableSeekRangeMode = 1;
+		if(representation_meta && representation_meta_get_duration_millis(representation_meta)>0){
+			strcatf(&str,"TimeSeekRange.dlna.org: npt=0.00-%.2f\r\n",((double)representation_meta_get_duration_millis(representation_meta))/1000);
+		}
+
+		//if(h->reqflags & FLAG_GETSEEKRANGE){
+			DPRINTF(E_DEBUG, L_HTTP, "getAvailableSeekRange ...\n");
+			if(representation_meta && representation_meta_get_duration_millis(representation_meta)>0){
+				strcatf(&str,"availableSeekRange.dlna.org: %d npt=0.00-%.2f\r\n",availableSeekRangeMode,((double)representation_meta_get_duration_millis(representation_meta))/1000);
+			}
+		//}
+	}
+
+	//if(h->reqflags & FLAG_GETCONTENTFEAT)
+	strcatf(&str,
+			"contentFeatures.dlna.org: %sDLNA.ORG_OP=%02X;DLNA.ORG_CI=%X;DLNA.ORG_FLAGS=%08X%024X\r\n",
+			last_file.dlna, (last_file.is_p2p_descriptor)?0x10:0x01, 0, dlna_flags, 0);
+
+	strcatf(&str,
+			"Server: " MINIDLNA_SERVER_STRING "\r\n\r\n");
+
+	DPRINTF(E_DEBUG, L_HTTP, "RESPONSE: %s\n", str.data);
+
+	if(h->reqflags & FLAG_TIMESEEK)
+		DPRINTF(E_DEBUG, L_HTTP, "TimeSeekRange ...\n");
+	if(h->reqflags & FLAG_GETCONTENTFEAT)
+		DPRINTF(E_DEBUG, L_HTTP, "GetContentFeatures ...\n");
+	if(h->reqflags & FLAG_GETSEEKRANGE)
+		DPRINTF(E_DEBUG, L_HTTP, "getAvailableSeekRange ...\n");
+
 	if( send_data(h, str.data, str.off, MSG_MORE) == 0 )
 	{
 #ifdef P2P_SUPPORT
 
-		//FIXME: do not send data if request == EHead
-		if(h->reqflags & FLAG_TIMESEEK)
-			DPRINTF(E_DEBUG, L_HTTP, "TimeSeekRange ...\n");
-
+		if( h->req_command != EHead ) {
 #define BLABYTES 10240
-		ssize_t to_read = BLABYTES;
-		ssize_t bytes_read = BLABYTES;
-		unsigned char buffer[BLABYTES] = {0};
-		if(last_file.is_p2p_descriptor)
-		{
-			while((bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,to_read))>=0){
-			//while((bytes_read = simple_fetch_engine_read(sfe_context,buffer,to_read))>=0){
-				if(bytes_read > 0)
-				{
-					ret = send(h->socket, buffer, bytes_read, 0);
-					if( ret == -1 ) {
-						DPRINTF(E_DEBUG, L_HTTP, "write error :: error no. %d [%s]\n", errno, strerror(errno));
-						if( errno != EAGAIN )
-							break;
-					}
-//					else
-//					{
-//						DPRINTF(E_DEBUG, L_HTTP, "send: %d %d\n",ret,bytes_read);
-//					}
+			int get_current_chunk_length = 1;
+			ssize_t current_chunk_length = 0;
+			ssize_t to_read = BLABYTES;
+			ssize_t bytes_read = BLABYTES;
+			unsigned char buffer[BLABYTES] = {0};
+			if(last_file.is_p2p_descriptor)
+			{
+				if(get_current_chunk_length){
+					bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,0);
+					current_chunk_length = stream_descriptor_fetch_engine_get_current_chunk_length(sdfe_context);
+					DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: #1 bytes_read: %d current_chunk_length: %ld\n",bytes_read,current_chunk_length);
 				}
+				while((bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,to_read))>=0){
+					if(bytes_read > 0)
+					{
+						ret = send(h->socket, buffer, bytes_read, 0);
+						if( ret == -1 ) {
+							DPRINTF(E_DEBUG, L_HTTP, "write error :: error no. %d [%s]\n", errno, strerror(errno));
+							if( errno != EAGAIN )
+								break;
+						}
+						else
+						{
+							DPRINTF(E_DEBUG, L_HTTP, "send: %d %d\n",ret,bytes_read);
+						}
+						get_current_chunk_length = 0;
+					}else if(bytes_read == 0){
+						get_current_chunk_length = 1;
+						if(get_current_chunk_length){
+							bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,0);
+							current_chunk_length = stream_descriptor_fetch_engine_get_current_chunk_length(sdfe_context);
+							DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: #2 bytes_read: %d current_chunk_length: %ld\n",bytes_read,current_chunk_length);
+						}
+					}
+				}
+				DPRINTF(E_DEBUG, L_HTTP, "off while send: %d %d\n",ret,bytes_read);
 			}
-			DPRINTF(E_DEBUG, L_HTTP, "off while send: %d %d\n",ret,bytes_read);
-		}
-		else
+			else
 #endif
- 		if( h->req_command != EHead )
 			send_file(h, sendfh, offset, h->req_RangeEnd);
+		}
 	}
 	if(sendfh>0)
 		close(sendfh);

@@ -128,6 +128,9 @@ struct upnphttp {
 #define FLAG_XFERBACKGROUND     0x00004000
 #define FLAG_CAPTION            0x00008000
 
+#define FLAG_GETCONTENTFEAT 	0x00010000
+#define FLAG_GETSEEKRANGE		0x00020000
+
 #define FLAG_DLNA               0x00100000
 #define FLAG_MIME_AVI_DIVX      0x00200000
 #define FLAG_MIME_AVI_AVI       0x00400000

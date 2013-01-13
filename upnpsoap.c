@@ -733,7 +733,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 	struct string_s *str = passed_args->str;
 	int ret = 0;
 
-	const char *dlna_op = "01";
+	const char *dlna_op = "10";
 
 	/* Make sure we have at least 8KB left of allocated memory to finish the response. */
 	if( str->off > (str->size - 8192) )
@@ -778,6 +778,7 @@ callback(void *args, int argc, char **argv, char **azColName)
 			dlna_flags |= DLNA_FLAG_TM_S;
 
 			dlna_flags |= DLNA_FLAG_LOP_NPT;
+			dlna_flags |= DLNA_FLAG_LOP_BYTES;
 
 			if( passed_args->flags & FLAG_MIME_AVI_DIVX )
 			{
