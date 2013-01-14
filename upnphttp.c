@@ -2177,7 +2177,7 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			"realTimeInfo.dlna.org: DLNA.ORG_TLAG=*\r\n",
 			date);
 
-	if(last_file.is_p2p_descriptor && descriptor){
+	if(0 && last_file.is_p2p_descriptor && descriptor){
 		representation_meta_t *representation_meta = stream_descriptor_get_representation_meta_by_index(descriptor,0);
 		int availableSeekRangeMode = 1;
 		if(representation_meta && representation_meta_get_duration_millis(representation_meta)>0){
@@ -2191,6 +2191,12 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 				strcatf(&str,"availableSeekRange.dlna.org: %d npt=0.00-%.2f\r\n",availableSeekRangeMode,((double)representation_meta_get_duration_millis(representation_meta))/1000);
 			}
 		//}
+	}
+
+	int transf_enc = 1;
+
+	if(transf_enc){
+		strcatf(&str,"Transfer-Encoding: chunked\r\n");
 	}
 
 	//if(h->reqflags & FLAG_GETCONTENTFEAT)
@@ -2221,12 +2227,25 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 			ssize_t to_read = BLABYTES;
 			ssize_t bytes_read = BLABYTES;
 			unsigned char buffer[BLABYTES] = {0};
+
+			char chunksize[1024];
+			struct string_s chunk_str;
+
+			chunk_str.data = chunksize;
+			chunk_str.size = sizeof(chunksize);
+			chunk_str.off = 0;
+
 			if(last_file.is_p2p_descriptor)
 			{
 				if(get_current_chunk_length){
 					bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,0);
 					current_chunk_length = stream_descriptor_fetch_engine_get_current_chunk_length(sdfe_context);
 					DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: #1 bytes_read: %d current_chunk_length: %ld\n",bytes_read,current_chunk_length);
+				}
+				if(transf_enc){
+					chunk_str.off = 0;
+					strcatf(&chunk_str,"%X\r\n",current_chunk_length);
+					send_data(h, chunk_str.data, chunk_str.off, MSG_MORE);
 				}
 				while((bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,to_read))>=0){
 					if(bytes_read > 0)
@@ -2248,10 +2267,21 @@ SendResp_dlnafile(struct upnphttp * h, char * object)
 							bytes_read = stream_descriptor_fetch_engine_read(sdfe_context,buffer,0);
 							current_chunk_length = stream_descriptor_fetch_engine_get_current_chunk_length(sdfe_context);
 							DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: #2 bytes_read: %d current_chunk_length: %ld\n",bytes_read,current_chunk_length);
+
+							if(transf_enc){
+								chunk_str.off = 0;
+								strcatf(&chunk_str,"\r\n%X\r\n",current_chunk_length);
+								send_data(h, chunk_str.data, chunk_str.off, MSG_MORE);
+							}
 						}
 					}
 					if(bytes_read == 0){
 						if(stream_descriptor_fetch_engine_context_eos(sdfe_context)){
+							if(transf_enc){
+								chunk_str.off = 0;
+								strcatf(&chunk_str,"\r\n0\r\n\r\n");
+								send_data(h, chunk_str.data, chunk_str.off, MSG_MORE);
+							}
 							DPRINTF(E_DEBUG, L_HTTP, "REMOVEME: EOS FOUND!\n");
 							break;
 						}
