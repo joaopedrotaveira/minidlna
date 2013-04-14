@@ -71,7 +71,7 @@ int content_manager_download_manifests(const char *content_manager_url){
 	while(link){
 		manifest_url = link->data;
 		if(manifest_url){
-			if((fetch = fetch_manager_run_engine("simple-fetch",manifest_url,FETCH_ON_MEMORY,"content",context)) == NULL){
+			if((fetch = fetch_manager_run_engine("simple-fetch",manifest_url,FETCH_ON_MEMORY,"content",context,PPSP_INVALID_DESC)) == NULL){
 				DPRINTF(E_WARN, L_P2P,  "Failed to download file: %s\n",manifest_url);
 			} else {
 				char *local_file = fetch_get_local_file(fetch);
